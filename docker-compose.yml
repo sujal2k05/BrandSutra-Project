@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MySQL 8.0 Database
+  db:
+    image: mysql:8.0
+    container_name: brandsutra_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-Sujal@2005}
+      MYSQL_DATABASE: brandsutra_db
+      MYSQL_USER: ${DB_USERNAME:-brandsutra}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-brandsutra123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - brandsutra_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python 3.11 FastAPI AI Microservice
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: brandsutra_ai
+    restart: always
+    environment:
+      - PORT=8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY:-brandsutra_secret_token_2026}
+    ports:
+      - "8000:8000"
+    networks:
+      - brandsutra_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Spring Boot Backend (Java 21)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brandsutra_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    environment:
+      - DB_URL=jdbc:mysql://db:3306/brandsutra_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-Sujal@2005}
+      - JWT_SECRET=${JWT_SECRET:-brandsutra_production_secure_jwt_secret_key_at_least_256_bits_long_for_security_2026}
+      - AI_SERVICE_URL=http://ai-service:8000
+      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY:-brandsutra_secret_token_2026}
+    ports:
+      - "8080:8080"
+    networks:
+      - brandsutra_net
+
+  # React 19 Frontend (Vite + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: brandsutra_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - brandsutra_net
+
+networks:
+  brandsutra_net:
+    driver: bridge
+
+volumes:
+  mysql_data:
