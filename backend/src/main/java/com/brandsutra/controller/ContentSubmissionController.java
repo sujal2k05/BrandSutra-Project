@@ -1,5 +1,6 @@
 package com.brandsutra.controller;
 
+import com.brandsutra.client.AiServiceClient;
 import com.brandsutra.dto.analysis.AnalysisResponseDto;
 import com.brandsutra.dto.content.ContentVersionDto;
 import com.brandsutra.dto.content.CreateRevisionRequest;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class ContentSubmissionController {
     private final ContentSubmissionService contentSubmissionService;
     private final AnalysisService analysisService;
     private final UserRepository userRepository;
+    private final AiServiceClient aiServiceClient;
 
     @PostMapping
     public ResponseEntity<SubmissionResponseDto> createSubmission(
@@ -98,11 +101,10 @@ public class ContentSubmissionController {
 
     @PostMapping("/analyze-visual")
     public ResponseEntity<Object> analyzeVisual(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("file") MultipartFile file,
             @RequestParam(value = "marketingChannel", defaultValue = "INSTAGRAM") String marketingChannel,
             @RequestParam(value = "primaryColorHex", defaultValue = "#6366F1") String primaryColorHex,
-            @RequestParam(value = "secondaryColorHex", defaultValue = "#8B5CF6") String secondaryColorHex,
-            @org.springframework.beans.factory.annotation.Autowired com.brandsutra.client.AiServiceClient aiServiceClient
+            @RequestParam(value = "secondaryColorHex", defaultValue = "#8B5CF6") String secondaryColorHex
     ) {
         return ResponseEntity.ok(aiServiceClient.analyzeVisualAsset(file, marketingChannel, primaryColorHex, secondaryColorHex));
     }
