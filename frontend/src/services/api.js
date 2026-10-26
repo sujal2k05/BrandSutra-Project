@@ -77,6 +77,9 @@ export const contentService = {
   getFindings: (id) => api.get(`/content/${id}/findings`),
   getVersionFindings: (versionId) => api.get(`/content/versions/${versionId}/findings`),
   dismissFinding: (findingId) => api.post(`/content/findings/${findingId}/dismiss`),
+  analyzeVisual: (formData) => api.post('/content/analyze-visual', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const approvalService = {

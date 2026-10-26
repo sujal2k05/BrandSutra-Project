@@ -1,6 +1,6 @@
 import time
 from typing import List
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from models.schemas import (
@@ -12,11 +12,12 @@ from models.schemas import (
 from services.rule_engine import RuleEngine
 from services.gemini_service import GeminiVerificationService
 from services.pdf_extractor import PdfExtractor
+from services.visual_checker import analyze_visual_asset
 
 app = FastAPI(
     title="BrandSutra AI Content Governance Microservice",
-    description="Explainable Rule-Based & Gemini AI Semantic Verification Service",
-    version="1.0.0"
+    description="Explainable Rule-Based & Gemini AI Semantic Verification Service with Visual Brand Checker",
+    version="1.1.0"
 )
 
 app.add_middleware(
@@ -41,7 +42,8 @@ def health_check():
         "service": "BrandSutra AI Content Inspector",
         "gemini_model": settings.GEMINI_MODEL,
         "gemini_configured": bool(settings.GEMINI_API_KEY),
-        "version": "1.0.0"
+        "visual_checker": "active",
+        "version": "1.1.0"
     }
 
 @app.post("/api/analyze", response_model=AnalysisResponse)
@@ -59,13 +61,11 @@ def analyze_content(request: AnalysisRequest):
     ai_findings: List[Finding] = GeminiVerificationService.analyze(request)
 
     # 3. Deduplicate and Merge Findings
-    # If a rule engine finding already covers the category and similar issue, preserve the rule engine finding
     combined_findings: List[Finding] = list(rule_findings)
     rule_issues = {f.category.lower() + "_" + f.severity.lower() for f in rule_findings}
 
     for af in ai_findings:
         key = af.category.lower() + "_" + af.severity.lower()
-        # Avoid exact duplicate category + severity if already covered
         if key not in rule_issues:
             combined_findings.append(af)
             rule_issues.add(key)
@@ -87,7 +87,6 @@ def analyze_content(request: AnalysisRequest):
     else:
         risk_level = "CRITICAL"
 
-    # Build human-readable summary
     if not combined_findings:
         summary = "No brand governance violations detected. Content complies with approved Brand DNA."
     else:
@@ -105,6 +104,30 @@ def analyze_content(request: AnalysisRequest):
         ai_based_count=len(combined_findings) - len(rule_findings),
         execution_time_ms=exec_time
     )
+
+@app.post("/api/analyze-visual")
+async def analyze_visual_endpoint(
+    file: UploadFile = File(...),
+    marketing_channel: str = Form("INSTAGRAM"),
+    primary_color_hex: str = Form("#6366F1"),
+    secondary_color_hex: str = Form("#8B5CF6")
+):
+    """
+    Visual Brand Checker: Inspects uploaded creative image against brand color guidelines,
+    aspect ratio standards, and safe margins.
+    """
+    contents = await file.read()
+    if len(contents) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image file size exceeds maximum 20MB limit.")
+
+    result = analyze_visual_asset(
+        image_bytes=contents,
+        marketing_channel=marketing_channel,
+        primary_color_hex=primary_color_hex,
+        secondary_color_hex=secondary_color_hex,
+        filename=file.filename or "creative.png"
+    )
+    return result
 
 @app.post("/api/extract-pdf", response_model=PdfExtractionResponse)
 async def extract_pdf_guideline(file: UploadFile = File(...)):

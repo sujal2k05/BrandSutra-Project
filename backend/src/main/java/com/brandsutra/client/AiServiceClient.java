@@ -81,6 +81,37 @@ public class AiServiceClient {
         return "Failed to extract PDF text. AI Service unavailable or corrupted file.";
     }
 
+    public Object analyzeVisualAsset(MultipartFile file, String marketingChannel, String primaryColorHex, String secondaryColorHex) {
+        String url = aiServiceUrl + "/api/analyze-visual";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : "asset.png";
+                }
+            };
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", fileResource);
+            body.add("marketing_channel", marketingChannel != null ? marketingChannel : "INSTAGRAM");
+            body.add("primary_color_hex", primaryColorHex != null ? primaryColorHex : "#6366F1");
+            body.add("secondary_color_hex", secondaryColorHex != null ? secondaryColorHex : "#8B5CF6");
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            ResponseEntity<Object> response = restTemplate.postForEntity(url, requestEntity, Object.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("Failed to analyze visual asset via AI service: {}", e.getMessage());
+        }
+        return null;
+    }
+
     private AiServiceAnalysisResponse buildFallbackRuleResponse(AnalysisRequestPayload payload) {
         AiServiceAnalysisResponse fallback = new AiServiceAnalysisResponse();
         fallback.setStatus("COMPLETED_WITH_RULES");

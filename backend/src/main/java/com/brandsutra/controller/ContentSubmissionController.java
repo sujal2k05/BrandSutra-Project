@@ -95,4 +95,15 @@ public class ContentSubmissionController {
         analysisService.dismissFinding(findingId, user);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/analyze-visual")
+    public ResponseEntity<Object> analyzeVisual(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "marketingChannel", defaultValue = "INSTAGRAM") String marketingChannel,
+            @RequestParam(value = "primaryColorHex", defaultValue = "#6366F1") String primaryColorHex,
+            @RequestParam(value = "secondaryColorHex", defaultValue = "#8B5CF6") String secondaryColorHex,
+            @org.springframework.beans.factory.annotation.Autowired com.brandsutra.client.AiServiceClient aiServiceClient
+    ) {
+        return ResponseEntity.ok(aiServiceClient.analyzeVisualAsset(file, marketingChannel, primaryColorHex, secondaryColorHex));
+    }
 }
