@@ -11,14 +11,13 @@ import {
   Users, 
   Settings, 
   LogOut,
-  Sparkles,
   ChevronRight,
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
-  const { user, logout, switchDemoAccount } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -85,46 +84,6 @@ const Sidebar = () => {
           );
         })}
       </nav>
-
-      {/* Demo Role Switcher Toolbar (Crucial for evaluation!) */}
-      <div className="p-3 mx-3 mb-2 rounded-xl bg-slate-900/90 border border-slate-800/90">
-        <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Switch Demo Role</span>
-        </div>
-        <div className="grid grid-cols-3 gap-1">
-          <button
-            onClick={() => switchDemoAccount('ADMIN')}
-            className={`text-[10px] py-1 px-1.5 rounded font-medium transition-colors ${
-              user?.role === 'ADMIN'
-                ? 'bg-indigo-600 text-white font-bold'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Admin
-          </button>
-          <button
-            onClick={() => switchDemoAccount('CONTENT_CREATOR')}
-            className={`text-[10px] py-1 px-1.5 rounded font-medium transition-colors ${
-              user?.role === 'CONTENT_CREATOR'
-                ? 'bg-indigo-600 text-white font-bold'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Creator
-          </button>
-          <button
-            onClick={() => switchDemoAccount('REVIEWER')}
-            className={`text-[10px] py-1 px-1.5 rounded font-medium transition-colors ${
-              user?.role === 'REVIEWER'
-                ? 'bg-indigo-600 text-white font-bold'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            Reviewer
-          </button>
-        </div>
-      </div>
 
       {/* User Footer Profile */}
       <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
