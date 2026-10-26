@@ -1,5 +1,6 @@
 package com.brandsutra.dto.auth;
 
+import com.brandsutra.entity.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,8 +25,11 @@ public class RegisterRequest {
     @NotBlank(message = "Full name is required")
     private String fullName;
 
-    @NotBlank(message = "Organization name is required")
     private String organizationName;
 
+    private Long organizationId;
+
     private String industry;
+
+    private Role role; // CONTENT_CREATOR or REVIEWER (or ADMIN)
 }

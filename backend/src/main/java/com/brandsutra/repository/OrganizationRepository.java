@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
     Optional<Organization> findBySlug(String slug);
     boolean existsBySlug(String slug);
+    Optional<Organization> findByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCase(String name);
 }
