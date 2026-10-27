@@ -1,9 +1,17 @@
+param(
+    [string]$FullName = "Demo Admin",
+    [string]$Email = "admin@nexusdynamics.internal",
+    [string]$Password = "Password@123",
+    [string]$OrgName = "Nexus Dynamics",
+    [string]$Industry = "Consumer Products & Appliances"
+)
+
 $body = @{
-    fullName = 'Sujal Bhoi'
-    email = 'sujal100@gmail.com'
-    password = 'Password@123'
-    organizationName = 'Nexus Dynamics'
-    industry = 'Consumer Products & Appliances'
+    fullName = $FullName
+    email = $Email
+    password = $Password
+    organizationName = $OrgName
+    industry = $Industry
 } | ConvertTo-Json
 
 try {

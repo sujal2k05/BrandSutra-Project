@@ -7,7 +7,7 @@ services:
     container_name: brandsutra_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-Sujal@2005}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE: brandsutra_db
       MYSQL_USER: ${DB_USERNAME:-brandsutra}
       MYSQL_PASSWORD: ${DB_PASSWORD:-brandsutra123}
@@ -35,7 +35,8 @@ services:
       - PORT=8000
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY:-brandsutra_secret_token_2026}
+      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY}
+      - INTERNAL_API_KEY=${AI_SERVICE_API_KEY}
     ports:
       - "8000:8000"
     networks:
@@ -60,11 +61,11 @@ services:
         condition: service_healthy
     environment:
       - DB_URL=jdbc:mysql://db:3306/brandsutra_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - DB_USERNAME=${DB_USERNAME:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-Sujal@2005}
-      - JWT_SECRET=${JWT_SECRET:-brandsutra_production_secure_jwt_secret_key_at_least_256_bits_long_for_security_2026}
+      - DB_USERNAME=${DB_USERNAME:-brandsutra}
+      - DB_PASSWORD=${DB_PASSWORD:-brandsutra123}
+      - JWT_SECRET=${JWT_SECRET}
       - AI_SERVICE_URL=http://ai-service:8000
-      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY:-brandsutra_secret_token_2026}
+      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY}
     ports:
       - "8080:8080"
     networks:

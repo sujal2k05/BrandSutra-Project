@@ -23,12 +23,15 @@ public class AiServiceClient {
 
     private final RestTemplate restTemplate;
     private final String aiServiceUrl;
+    private final String internalApiKey;
 
     public AiServiceClient(
             RestTemplate restTemplate,
-            @Value("${brandsutra.ai-service.url:http://localhost:8000}") String aiServiceUrl) {
+            @Value("${brandsutra.ai-service.url:http://localhost:8000}") String aiServiceUrl,
+            @Value("${brandsutra.ai-service.api-key:}") String internalApiKey) {
         this.restTemplate = restTemplate;
         this.aiServiceUrl = aiServiceUrl;
+        this.internalApiKey = internalApiKey;
     }
 
     public AiServiceAnalysisResponse analyzeContent(AnalysisRequestPayload payload) {
@@ -38,7 +41,7 @@ public class AiServiceClient {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Internal-API-Key", "brandsutra-internal-ai-key-2026");
+            headers.set("X-Internal-API-Key", internalApiKey);
 
             HttpEntity<AnalysisRequestPayload> requestEntity = new HttpEntity<>(payload, headers);
             ResponseEntity<AiServiceAnalysisResponse> response = restTemplate.postForEntity(url, requestEntity, AiServiceAnalysisResponse.class);

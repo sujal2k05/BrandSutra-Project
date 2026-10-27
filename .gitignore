@@ -66,7 +66,33 @@ wheels/
 *.sw?
 .DS_Store
 
-# Environment files
+# Environment and secret files
 .env
-.env.local
-.env.example
+.env.*
+!.env.example
+*.env
+*.local
+
+# Spring Boot local property overrides
+application-local.properties
+application-secret.properties
+application-local.yml
+application-secret.yml
+
+# Credentials, Keys and Keystores
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+credentials.json
+serviceAccountKey.json
+client_secret*.json
+
+# Antigravity / Gemini IDE local state
+.gemini/
+
+# Scratch & test generated artifacts
+test_visual.png
