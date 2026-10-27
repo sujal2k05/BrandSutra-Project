@@ -42,26 +42,26 @@ const Sidebar = () => {
   );
 
   return (
-    <aside className="w-64 bg-darkSidebar text-slate-300 flex flex-col min-h-screen border-r border-slate-800 select-none">
+    <aside className="w-64 bg-white text-slate-700 flex flex-col min-h-screen border-r border-slate-200/90 select-none shadow-xs">
       {/* Brand Header */}
-      <div className="h-16 flex items-center px-6 gap-3 border-b border-slate-800/80 bg-slate-950/40">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white">
+      <div className="h-16 flex items-center px-6 gap-3 border-b border-slate-100 bg-white">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white">
           <ShieldCheck className="w-5 h-5" />
         </div>
         <div>
-          <span className="font-bold text-lg text-white tracking-tight flex items-center gap-1.5">
+          <span className="font-extrabold text-lg text-slate-900 tracking-tight flex items-center gap-1.5">
             BrandSutra
-            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-semibold px-1.5 py-0.5 rounded border border-indigo-500/30">
+            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200/80">
               AI
             </span>
           </span>
-          <p className="text-[10px] text-slate-400 font-medium">Content Governance</p>
+          <p className="text-[10px] text-slate-400 font-medium tracking-wide">Brand Governance Platform</p>
         </div>
       </div>
 
       {/* Navigation Links */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
           Governance Workspace
         </div>
         {filteredNavItems.map((item) => {
@@ -71,10 +71,10 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-indigo-50 text-indigo-700 shadow-xs border border-indigo-100/90'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                 }`
               }
             >
@@ -86,15 +86,15 @@ const Sidebar = () => {
       </nav>
 
       {/* User Footer Profile */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/40 transition-colors">
+      <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/70 shadow-xs">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs border border-indigo-500/30 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs border border-indigo-200/80 flex-shrink-0">
               {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-medium text-white truncate">{user?.fullName || 'User'}</p>
-              <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-900 truncate">{user?.fullName || 'User'}</p>
+              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
                 {user?.role?.replace('_', ' ') || 'GUEST'}
               </span>
             </div>
@@ -102,7 +102,7 @@ const Sidebar = () => {
           <button
             onClick={handleLogout}
             title="Log out"
-            className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
           >
             <LogOut className="w-4 h-4" />
           </button>

@@ -4,7 +4,6 @@ import com.brandsutra.dto.analysis.AnalysisRequestPayload;
 
 
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -19,14 +18,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class AiServiceClient {
 
     private final RestTemplate restTemplate;
+    private final String aiServiceUrl;
 
-    @Value("${brandsutra.ai-service.url:http://localhost:8000}")
-    private String aiServiceUrl;
+    public AiServiceClient(
+            RestTemplate restTemplate,
+            @Value("${brandsutra.ai-service.url:http://localhost:8000}") String aiServiceUrl) {
+        this.restTemplate = restTemplate;
+        this.aiServiceUrl = aiServiceUrl;
+    }
 
     public AiServiceAnalysisResponse analyzeContent(AnalysisRequestPayload payload) {
         String url = aiServiceUrl + "/api/analyze";

@@ -22,7 +22,7 @@ const RegisterPage = () => {
     fullName: '',
     email: '',
     password: '',
-    role: 'CONTENT_CREATOR', // Default role option
+    role: 'CONTENT_CREATOR',
     organizationId: '',
     organizationName: '',
     industry: 'Consumer Products'
@@ -111,39 +111,42 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-indigo-500 selection:text-white">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+      {/* Decorative top soft glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-indigo-100/50 to-transparent blur-3xl pointer-events-none rounded-full" />
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
         <Link to="/" className="inline-flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-            <ShieldCheck className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white">
+            <ShieldCheck className="w-7 h-7" />
           </div>
-          <span className="font-extrabold text-2xl text-white tracking-tight">BrandSutra</span>
+          <span className="font-extrabold text-2xl text-slate-900 tracking-tight">BrandSutra</span>
         </Link>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-white">
+        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
           Join Your Brand Workspace
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
             Sign in
           </Link>
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg px-4 sm:px-0">
-        <div className="bg-slate-950 py-8 px-6 shadow-2xl rounded-2xl border border-slate-800 sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg px-4 sm:px-0 relative z-10">
+        <div className="bg-white py-9 px-6 sm:px-10 shadow-card rounded-2xl border border-slate-200/90">
           
           {/* Admin Policy Notice */}
-          <div className="mb-6 p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs flex items-center gap-2.5">
-            <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-            <span>
-              <strong>Team Governance Policy:</strong> Workspace Admin is managed by organization leadership. Please choose whether to register as a <strong>Content Creator</strong> or <strong>Reviewer</strong> below.
+          <div className="mb-6 p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-indigo-950 text-xs flex items-start gap-3">
+            <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">
+              <strong>Team Governance Policy:</strong> Workspace Admin is managed by organization leadership. Please choose whether to register as a <strong>Content Creator</strong> or <strong>Human Reviewer</strong> below.
             </span>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" />
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
@@ -152,7 +155,7 @@ const RegisterPage = () => {
             
             {/* Step 1: Role Selection Cards */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Select Your Role *
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -161,15 +164,15 @@ const RegisterPage = () => {
                   onClick={() => handleRoleSelect('CONTENT_CREATOR')}
                   className={`p-3.5 rounded-xl border text-left transition-all ${
                     formData.role === 'CONTENT_CREATOR'
-                      ? 'bg-indigo-600/15 border-indigo-500 text-white ring-2 ring-indigo-500/50'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      ? 'bg-indigo-50/80 border-indigo-600 text-slate-900 ring-2 ring-indigo-500/20 shadow-xs'
+                      : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <PenTool className="w-4 h-4 text-indigo-400" />
-                    <span className="text-sm font-bold text-white">Content Creator</span>
+                    <PenTool className="w-4 h-4 text-indigo-600" />
+                    <span className="text-sm font-bold text-slate-900">Content Creator</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-tight">
+                  <p className="text-[11px] text-slate-500 leading-tight">
                     Draft copy, test AI inspection, accept fixes & submit revisions.
                   </p>
                 </button>
@@ -179,15 +182,15 @@ const RegisterPage = () => {
                   onClick={() => handleRoleSelect('REVIEWER')}
                   className={`p-3.5 rounded-xl border text-left transition-all ${
                     formData.role === 'REVIEWER'
-                      ? 'bg-purple-600/15 border-purple-500 text-white ring-2 ring-purple-500/50'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      ? 'bg-purple-50/80 border-purple-600 text-slate-900 ring-2 ring-purple-500/20 shadow-xs'
+                      : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm font-bold text-white">Human Reviewer</span>
+                    <CheckCircle className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-bold text-slate-900">Human Reviewer</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-tight">
+                  <p className="text-[11px] text-slate-500 leading-tight">
                     Inspect evidence, verify compliance, Approve / Reject publications.
                   </p>
                 </button>
@@ -196,11 +199,11 @@ const RegisterPage = () => {
 
             {/* Step 2: Full Name */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Full Name *
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -210,18 +213,18 @@ const RegisterPage = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="e.g. Sujal Bhoi"
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                 />
               </div>
             </div>
 
             {/* Step 3: Work Email */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Work Email *
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -231,24 +234,24 @@ const RegisterPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="name@company.com"
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                 />
               </div>
             </div>
 
             {/* Step 4: Organization Selection */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Select Workspace Organization *
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <select
                   value={showNewOrgInput ? '__NEW__' : formData.organizationId}
                   onChange={handleOrgSelect}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                 >
                   {organizations.map((org) => (
                     <option key={org.id} value={org.id}>
@@ -264,7 +267,7 @@ const RegisterPage = () => {
             {showNewOrgInput && (
               <div className="space-y-3 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Organization Name
                   </label>
                   <input
@@ -274,18 +277,18 @@ const RegisterPage = () => {
                     value={formData.organizationName}
                     onChange={handleChange}
                     placeholder="e.g. Nexus Dynamics"
-                    className="block w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="block w-full px-3 py-2 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Industry
                   </label>
                   <select
                     name="industry"
                     value={formData.industry}
                     onChange={handleChange}
-                    className="block w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="block w-full px-3 py-2 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                   >
                     <option value="Consumer Products">Consumer Products & Appliances</option>
                     <option value="SaaS & Technology">SaaS & Technology</option>
@@ -299,11 +302,11 @@ const RegisterPage = () => {
 
             {/* Step 5: Password with Visibility Toggle */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Password *
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -314,12 +317,12 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Min 6 characters"
-                  className="block w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="block w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -330,10 +333,10 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${
+              className={`w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white transition-all shadow-md ${
                 formData.role === 'CONTENT_CREATOR'
-                  ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
-                  : 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                  : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
               } disabled:opacity-50`}
             >
               {isLoading ? (
@@ -341,7 +344,7 @@ const RegisterPage = () => {
               ) : (
                 <>
                   <span>
-                    Join as {formData.role === 'CONTENT_CREATOR' ? 'Content Creator' : 'Reviewer'}
+                    Join as {formData.role === 'CONTENT_CREATOR' ? 'Content Creator' : 'Human Reviewer'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>

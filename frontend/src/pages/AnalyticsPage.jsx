@@ -189,18 +189,18 @@ const AnalyticsPage = () => {
       </div>
 
       {/* AREA 3: GOVERNANCE INTELLIGENCE & AMBIGUOUS GUIDELINE GAP DETECTOR */}
-      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 rounded-2xl border border-indigo-500/30 p-6 text-white shadow-md space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-500/30 pb-4">
+      <div className="bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/80 rounded-2xl border border-indigo-200/90 p-6 text-slate-900 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              <h3 className="font-bold text-lg text-white">Governance Intelligence: Ambiguous Guideline Gap Detector</h3>
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-extrabold text-lg text-slate-900">Governance Intelligence: Ambiguous Guideline Gap Detector</h3>
             </div>
-            <p className="text-xs text-indigo-200 mt-1">
+            <p className="text-xs text-slate-600 mt-1">
               AI analysis identifying policies that cause recurring confusion or require clearer wording in Brand DNA.
             </p>
           </div>
-          <span className="text-[11px] bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 font-semibold self-start sm:self-auto">
+          <span className="text-[11px] bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 font-bold self-start sm:self-auto shadow-xs">
             Automated Recommendations
           </span>
         </div>
@@ -208,56 +208,56 @@ const AnalyticsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Card 1: Promotional Discounts Gap */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                 High Confusion Rate
               </span>
-              <span className="text-xs font-mono text-slate-400">Policy #3</span>
+              <span className="text-xs font-mono font-bold text-slate-400">Policy #3</span>
             </div>
-            <h4 className="font-bold text-sm text-white">Promotional Discount Caps (25%)</h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h4 className="font-bold text-sm text-slate-900">Promotional Discount Caps (25%)</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
               <strong>Observed Friction:</strong> Marketers repeatedly offer 40%–50% festive discounts without realizing the 25% hard cap applies to all seasonal sales.
             </p>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-indigo-300 flex items-start gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <span><strong>Action:</strong> Clarify seasonal exception criteria in Brand DNA v2 or distribute an approved promo cheat sheet.</span>
+            <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-start gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <span><strong className="text-slate-900">Action:</strong> Clarify seasonal exception criteria in Brand DNA v2 or distribute an approved promo cheat sheet.</span>
             </div>
           </div>
 
           {/* Card 2: Warranty Limitation Ambiguity */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                 Recurring Legal Risk
               </span>
-              <span className="text-xs font-mono text-slate-400">Policy #1 & #2</span>
+              <span className="text-xs font-mono font-bold text-slate-400">Policy #1 & #2</span>
             </div>
-            <h4 className="font-bold text-sm text-white">General vs Compressor Warranty</h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h4 className="font-bold text-sm text-slate-900">General vs Compressor Warranty</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
               <strong>Observed Friction:</strong> Copywriters frequently state "5-year warranty on everything" instead of distinguishing the 2-year general coverage from the Model X compressor.
             </p>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-indigo-300 flex items-start gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <span><strong>Action:</strong> Mandate a standardized copy-paste warranty disclaimer block in Brand DNA guidelines.</span>
+            <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-start gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <span><strong className="text-slate-900">Action:</strong> Mandate a standardized copy-paste warranty disclaimer block in Brand DNA guidelines.</span>
             </div>
           </div>
 
           {/* Card 3: Banned Perfection Terminology */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 Resolution Success
               </span>
-              <span className="text-xs font-mono text-slate-400">Rule #1</span>
+              <span className="text-xs font-mono font-bold text-slate-400">Rule #1</span>
             </div>
-            <h4 className="font-bold text-sm text-white">Superlatives & Perfection Claims</h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h4 className="font-bold text-sm text-slate-900">Superlatives & Perfection Claims</h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
               <strong>Observed Friction:</strong> Phrases like "100% perfect" and "Guaranteed results" were detected in drafts but successfully resolved by 1-click suggested corrections.
             </p>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-indigo-300 flex items-start gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <span><strong>Action:</strong> Maintain existing automated replacement rules. 100% of creators accepted suggested alternatives.</span>
+            <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-start gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <span><strong className="text-slate-900">Action:</strong> Maintain existing automated replacement rules. 100% of creators accepted suggested alternatives.</span>
             </div>
           </div>
         </div>

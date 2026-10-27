@@ -117,16 +117,16 @@ const ApprovalsPage = () => {
     <div className="space-y-6">
       
       {/* Enterprise AI Disclosure & Privacy Banner */}
-      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 border border-indigo-500/30 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+          <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center border border-purple-200/90 shadow-xs">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-bold text-white tracking-wide uppercase block">
+            <span className="text-xs font-bold text-slate-900 tracking-wide uppercase block">
               Human Reviewer Authority & Confidentiality Notice
             </span>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-[11px] text-slate-600">
               AI analysis provides advisory findings. The legal stamp of publication approval requires authorized human decision-making.
             </p>
           </div>

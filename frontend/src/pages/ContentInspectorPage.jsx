@@ -241,27 +241,27 @@ const ContentInspectorPage = () => {
     <div className="space-y-6">
       
       {/* AREA 4: ENTERPRISE DATA PROTECTION & AI DISCLOSURE BANNER */}
-      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 border border-indigo-500/30 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+          <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center border border-indigo-200/90 shadow-xs">
             <Shield className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white tracking-wide uppercase">
+              <span className="text-xs font-bold text-slate-900 tracking-wide uppercase">
                 Enterprise AI Governance & Privacy Disclosure
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200/80">
                 Zero Data Retention
               </span>
             </div>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-[11px] text-slate-600">
               Evaluated via sandboxed Google Gemini 2.5 Flash. Submitted content is isolated and never retained for public model training.
             </p>
           </div>
         </div>
-        <div className="text-[11px] text-indigo-300 font-medium flex items-center gap-1.5 bg-indigo-900/50 px-3 py-1.5 rounded-xl border border-indigo-500/20">
-          <Info className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="text-[11px] text-indigo-700 font-semibold flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-indigo-200/80 shadow-xs">
+          <Info className="w-3.5 h-3.5 text-indigo-600" />
           <span>Final publication authority rests strictly with human reviewers</span>
         </div>
       </div>
