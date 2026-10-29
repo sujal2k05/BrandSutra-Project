@@ -152,4 +152,53 @@ public class AnalysisServiceTest {
         assertNull(result.getFindings().get(0).getEvidenceId());
         assertEquals(EvidenceStatus.REQUIRES_VERIFICATION, result.getFindings().get(0).getEvidenceStatus());
     }
+
+    @Test
+    void testAnalyzeSubmission_ReanalysisUpdatesExistingWithoutDuplicateKey() {
+        when(submissionRepository.findById(10L)).thenReturn(Optional.of(submission));
+        when(versionRepository.findById(100L)).thenReturn(Optional.of(version));
+        when(brandFactRepository.findByOrganizationIdAndStatus(1L, "APPROVED")).thenReturn(List.of(fact));
+        when(brandRuleRepository.findByOrganizationIdAndIsActiveTrue(1L)).thenReturn(Collections.emptyList());
+        when(brandGuidelineRepository.findByOrganizationIdAndIsApprovedTrue(1L)).thenReturn(Collections.emptyList());
+
+        // Existing analysis result already present for version 100
+        AnalysisResult existingResult = AnalysisResult.builder()
+                .id(777L)
+                .version(version)
+                .totalFindings(5)
+                .riskScore(80)
+                .riskLevel(Severity.CRITICAL)
+                .build();
+        when(analysisResultRepository.findByVersionId(100L)).thenReturn(Optional.of(existingResult));
+
+        // Existing findings to be replaced
+        AiFinding oldFinding = AiFinding.builder().id(11L).analysis(existingResult).issue("Old issue").build();
+        when(aiFindingRepository.findByAnalysisId(777L)).thenReturn(List.of(oldFinding));
+
+        // Mock new AI response
+        AiServiceClient.AiServiceAnalysisResponse mockAi = new AiServiceClient.AiServiceAnalysisResponse();
+        AiServiceClient.FindingItem item1 = new AiServiceClient.FindingItem();
+        item1.setCategory("DISCOUNTS");
+        item1.setIssue("New discount violation");
+        item1.setSeverity("LOW");
+        item1.setEvidenceStatus("COMPLIANT");
+        item1.setEvidenceId(50L);
+        mockAi.setFindings(List.of(item1));
+        mockAi.setSummary("Updated analysis");
+
+        when(aiServiceClient.analyzeContent(any(AnalysisRequestPayload.class))).thenReturn(mockAi);
+        when(analysisResultRepository.save(any(AnalysisResult.class))).thenAnswer(i -> i.getArgument(0));
+
+        AnalysisResponseDto result = analysisService.analyzeSubmission(10L, creator);
+
+        assertNotNull(result);
+        assertEquals(777L, result.getId()); // Retains existing AnalysisResult ID
+        assertEquals(1, result.getTotalFindings());
+        assertEquals(5, result.getRiskScore());
+        assertEquals(Severity.LOW, result.getRiskLevel());
+
+        // Verify old findings were deleted and new analysis was updated in-place
+        verify(aiFindingRepository).deleteAll(List.of(oldFinding));
+        verify(analysisResultRepository).save(existingResult);
+    }
 }

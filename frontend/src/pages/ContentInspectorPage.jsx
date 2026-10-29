@@ -40,6 +40,7 @@ const ContentInspectorPage = () => {
   const [activeTab, setActiveTab] = useState('text'); // 'text' | 'visual'
   const [submissionId, setSubmissionId] = useState(querySubmissionId ? parseInt(querySubmissionId) : null);
   const [activeVersionNumber, setActiveVersionNumber] = useState(1);
+  const [loadedContentText, setLoadedContentText] = useState('');
   const [formData, setFormData] = useState({
     organizationId: user?.organizationId || 1,
     title: 'Festive Season Promotional Campaign',
@@ -83,13 +84,24 @@ const ContentInspectorPage = () => {
         contentText: sub.currentContentText || '',
         publicationDate: sub.publicationDate || ''
       });
+      setLoadedContentText(sub.currentContentText || '');
       setActiveVersionNumber(sub.currentVersionNumber || 1);
       setOverallStatus(sub.overallStatus || 'DRAFT');
 
-      try {
-        const findingsRes = await contentService.getFindings(id);
-        setAnalysisResult(findingsRes.data);
-      } catch (ignored) {}
+      // Only attempt to load findings if submission has been analyzed
+      if (sub.overallStatus && sub.overallStatus !== 'DRAFT') {
+        try {
+          const findingsRes = await contentService.getFindings(id);
+          setAnalysisResult(findingsRes.data);
+        } catch (findingsErr) {
+          if (findingsErr.response?.status !== 404) {
+            console.warn('Could not load existing findings:', findingsErr);
+          }
+          setAnalysisResult(null);
+        }
+      } else {
+        setAnalysisResult(null);
+      }
     } catch (err) {
       console.error(err);
       setNotification({ text: 'Failed to load submission.', type: 'error' });
@@ -120,11 +132,13 @@ const ContentInspectorPage = () => {
         const res = await contentService.createSubmission(formData);
         setSubmissionId(res.data.id);
         setActiveVersionNumber(res.data.currentVersionNumber);
+        setLoadedContentText(formData.contentText);
         setNotification({ text: 'Draft saved as Version 1!', type: 'success' });
       } else {
         const res = await contentService.createRevision(submissionId, { contentText: formData.contentText });
         setActiveVersionNumber(res.data.versionNumber);
         setOverallStatus('DRAFT');
+        setLoadedContentText(formData.contentText);
         setNotification({ text: `New revision created as Version ${res.data.versionNumber}!`, type: 'success' });
       }
       setTimeout(() => setNotification({ text: '', type: '' }), 4000);
@@ -135,6 +149,7 @@ const ContentInspectorPage = () => {
   };
 
   const handleAnalyze = async () => {
+    if (isAnalyzing) return;
     setIsAnalyzing(true);
     setNotification({ text: '', type: '' });
 
@@ -144,18 +159,45 @@ const ContentInspectorPage = () => {
         const createRes = await contentService.createSubmission(formData);
         currentSubId = createRes.data.id;
         setSubmissionId(currentSubId);
-        setActiveVersionNumber(createRes.data.currentVersionNumber);
+        setActiveVersionNumber(createRes.data.currentVersionNumber || 1);
+        setLoadedContentText(formData.contentText);
+      } else if (overallStatus === 'ANALYZED' && formData.contentText.trim() !== loadedContentText.trim()) {
+        // If content was modified after previous analysis, save as new revision
+        const revRes = await contentService.createRevision(currentSubId, { contentText: formData.contentText });
+        setActiveVersionNumber(revRes.data.versionNumber);
+        setOverallStatus('DRAFT');
+        setLoadedContentText(formData.contentText);
       }
 
       const res = await contentService.analyzeContent(currentSubId);
       setAnalysisResult(res.data);
+      setOverallStatus('ANALYZED');
       setNotification({
         text: `Analysis complete! Brand Risk Score: ${res.data.riskScore}/100 (${res.data.riskLevel})`,
         type: res.data.riskScore > 40 ? 'warning' : 'success'
       });
     } catch (err) {
-      console.error(err);
-      setNotification({ text: 'AI analysis failed. Please verify AI microservice is active.', type: 'error' });
+      console.error('Analysis error:', err);
+      const status = err.response?.status;
+      const backendMessage = err.response?.data?.message;
+
+      if (status === 502 || status === 503) {
+        setNotification({
+          text: 'AI microservice is waking up or temporarily busy. Deterministic safety rules fallback was used, or retry in a few moments.',
+          type: 'warning'
+        });
+      } else if (status === 401 || status === 403) {
+        setNotification({ text: 'Authentication session expired. Please sign in again.', type: 'error' });
+      } else if (status === 500) {
+        setNotification({
+          text: `Server error during analysis: ${backendMessage || 'Database or service conflict'}.`,
+          type: 'error'
+        });
+      } else if (backendMessage) {
+        setNotification({ text: `Analysis error: ${backendMessage}`, type: 'error' });
+      } else {
+        setNotification({ text: 'Analysis failed. Please verify service connection.', type: 'error' });
+      }
     } finally {
       setIsAnalyzing(false);
     }

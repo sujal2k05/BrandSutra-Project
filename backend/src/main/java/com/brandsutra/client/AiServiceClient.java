@@ -34,8 +34,12 @@ public class AiServiceClient {
         this.internalApiKey = internalApiKey;
     }
 
+    private String getNormalizedBaseUrl() {
+        return aiServiceUrl != null ? aiServiceUrl.trim().replaceAll("/+$", "") : "http://localhost:8000";
+    }
+
     public AiServiceAnalysisResponse analyzeContent(AnalysisRequestPayload payload) {
-        String url = aiServiceUrl + "/api/analyze";
+        String url = getNormalizedBaseUrl() + "/api/analyze";
         log.info("Dispatching analysis request to FastAPI AI service at: {}", url);
 
         try {
@@ -60,7 +64,7 @@ public class AiServiceClient {
     }
 
     public String extractPdfText(MultipartFile file) {
-        String url = aiServiceUrl + "/api/extract-pdf";
+        String url = getNormalizedBaseUrl() + "/api/extract-pdf";
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -88,7 +92,7 @@ public class AiServiceClient {
     }
 
     public Object analyzeVisualAsset(MultipartFile file, String marketingChannel, String primaryColorHex, String secondaryColorHex) {
-        String url = aiServiceUrl + "/api/analyze-visual";
+        String url = getNormalizedBaseUrl() + "/api/analyze-visual";
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);

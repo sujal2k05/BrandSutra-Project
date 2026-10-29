@@ -36,8 +36,9 @@ public class AnalysisService {
 
     @Transactional
     public AnalysisResponseDto analyzeSubmission(Long submissionId, User user) {
-        ContentSubmission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Submission not found: " + submissionId));
+        ContentSubmission submission = submissionRepository.findByIdForUpdate(submissionId)
+                .orElseGet(() -> submissionRepository.findById(submissionId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Submission not found: " + submissionId)));
 
         if (submission.getCurrentVersionId() == null) {
             throw new BadRequestException("Submission has no active content version.");
@@ -66,8 +67,8 @@ public class AnalysisService {
                 .versionId(version.getId())
                 .organizationId(orgId)
                 .submittedText(version.getContentText())
-                .contentType(submission.getContentType().name())
-                .marketingChannel(submission.getMarketingChannel().name())
+                .contentType(submission.getContentType() != null ? submission.getContentType().name() : "SOCIAL_MEDIA")
+                .marketingChannel(submission.getMarketingChannel() != null ? submission.getMarketingChannel().name() : "INSTAGRAM")
                 .brandProfile(profile != null ? AnalysisRequestPayload.BrandProfilePayload.builder()
                         .brandName(profile.getBrandName())
                         .voiceTone(profile.getVoiceTone())
@@ -76,7 +77,7 @@ public class AnalysisService {
                         .build() : null)
                 .approvedFacts(approvedFacts.stream().map(f -> AnalysisRequestPayload.FactPayload.builder()
                         .id(f.getId())
-                        .category(f.getCategory().name())
+                        .category(f.getCategory() != null ? f.getCategory().name() : "GENERAL")
                         .factTitle(f.getFactTitle())
                         .approvedStatement(f.getApprovedStatement())
                         .source(f.getSource())
@@ -84,12 +85,12 @@ public class AnalysisService {
                         .build()).collect(Collectors.toList()))
                 .brandRules(activeRules.stream().map(r -> AnalysisRequestPayload.RulePayload.builder()
                         .id(r.getId())
-                        .ruleType(r.getRuleType().name())
+                        .ruleType(r.getRuleType() != null ? r.getRuleType().name() : "BANNED_TERM")
                         .termOrPhrase(r.getTermOrPhrase())
                         .preferredReplacement(r.getPreferredReplacement())
                         .explanation(r.getExplanation())
                         .thresholdValue(r.getThresholdValue())
-                        .severity(r.getSeverity().name())
+                        .severity(r.getSeverity() != null ? r.getSeverity().name() : "HIGH")
                         .build()).collect(Collectors.toList()))
                 .guidelinesText(guidelinesText.toString())
                 .build();
@@ -99,7 +100,7 @@ public class AnalysisService {
 
         // 4. Evidence Validation & Fact Integrity Verification
         Map<Long, BrandFact> factsMap = approvedFacts.stream()
-                .collect(Collectors.toMap(BrandFact::getId, f -> f));
+                .collect(Collectors.toMap(BrandFact::getId, f -> f, (existing, replacement) -> existing));
 
         int low = 0, med = 0, high = 0, crit = 0;
         List<AiFinding> findingsToSave = new ArrayList<>();
@@ -107,14 +108,14 @@ public class AnalysisService {
         for (AiServiceClient.FindingItem item : aiResponse.getFindings()) {
             Severity sev;
             try {
-                sev = Severity.valueOf(item.getSeverity().toUpperCase());
+                sev = item.getSeverity() != null ? Severity.valueOf(item.getSeverity().toUpperCase()) : Severity.MEDIUM;
             } catch (Exception e) {
                 sev = Severity.MEDIUM;
             }
 
             EvidenceStatus evStatus;
             try {
-                evStatus = EvidenceStatus.valueOf(item.getEvidenceStatus().toUpperCase());
+                evStatus = item.getEvidenceStatus() != null ? EvidenceStatus.valueOf(item.getEvidenceStatus().toUpperCase()) : EvidenceStatus.REQUIRES_VERIFICATION;
             } catch (Exception e) {
                 evStatus = EvidenceStatus.REQUIRES_VERIFICATION;
             }
@@ -171,20 +172,34 @@ public class AnalysisService {
         else if (calculatedScore <= 70) riskLevel = Severity.HIGH;
         else riskLevel = Severity.CRITICAL;
 
-        // 6. Save Analysis Result
-        AnalysisResult analysisResult = AnalysisResult.builder()
-                .version(version)
-                .totalFindings(findingsToSave.size())
-                .lowCount(low)
-                .mediumCount(med)
-                .highCount(high)
-                .criticalCount(crit)
-                .riskScore(calculatedScore)
-                .riskLevel(riskLevel)
-                .status("COMPLETED")
-                .analysisSummary(aiResponse.getSummary() != null ? aiResponse.getSummary() : "Analysis completed.")
-                .executionTimeMs(aiResponse.getExecutionTimeMs() != null ? aiResponse.getExecutionTimeMs() : 50L)
-                .build();
+        // 6. UPSERT Analysis Result (In-place update avoids duplicate key violation on unique version_id constraint)
+        AnalysisResult analysisResult = analysisResultRepository.findByVersionId(version.getId())
+                .orElse(null);
+
+        if (analysisResult == null) {
+            analysisResult = AnalysisResult.builder()
+                    .version(version)
+                    .build();
+        } else {
+            // Remove previous findings associated with this analysis
+            List<AiFinding> oldFindings = aiFindingRepository.findByAnalysisId(analysisResult.getId());
+            if (!oldFindings.isEmpty()) {
+                aiFindingRepository.deleteAll(oldFindings);
+                aiFindingRepository.flush();
+            }
+        }
+
+        analysisResult.setTotalFindings(findingsToSave.size());
+        analysisResult.setLowCount(low);
+        analysisResult.setMediumCount(med);
+        analysisResult.setHighCount(high);
+        analysisResult.setCriticalCount(crit);
+        analysisResult.setRiskScore(calculatedScore);
+        analysisResult.setRiskLevel(riskLevel);
+        analysisResult.setStatus("COMPLETED");
+        analysisResult.setAnalysisSummary(aiResponse.getSummary() != null ? aiResponse.getSummary() : "Analysis completed.");
+        analysisResult.setExecutionTimeMs(aiResponse.getExecutionTimeMs() != null ? aiResponse.getExecutionTimeMs() : 50L);
+
         analysisResult = analysisResultRepository.save(analysisResult);
 
         // Associate analysisResult with findings
@@ -193,7 +208,7 @@ public class AnalysisService {
         }
         aiFindingRepository.saveAll(findingsToSave);
 
-        // 7. Update Version and Submission Statuses
+        // 8. Update Version and Submission Statuses
         version.setRiskScore(calculatedScore);
         version.setRiskLevel(riskLevel);
         version.setStatus(SubmissionStatus.ANALYZED);

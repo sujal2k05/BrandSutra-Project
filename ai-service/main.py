@@ -35,6 +35,23 @@ SEVERITY_WEIGHTS = {
     "CRITICAL": 40
 }
 
+@app.get("/")
+def root():
+    return {
+        "status": "healthy",
+        "service": "BrandSutra AI Content Governance Microservice",
+        "gemini_model": settings.GEMINI_MODEL,
+        "gemini_configured": bool(settings.GEMINI_API_KEY),
+        "version": "1.1.0",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "analyze": "POST /api/analyze",
+            "visual_check": "POST /api/analyze-visual",
+            "extract_pdf": "POST /api/extract-pdf"
+        }
+    }
+
 @app.get("/health")
 def health_check():
     return {
