@@ -94,7 +94,8 @@ public class UrlFetchService {
                         }
                         body.append(buffer, 0, charsRead);
                     }
-                    return body.toString();
+                    String raw = body.toString();
+                    return extractCleanText(raw);
                 }
 
             } catch (Exception e) {
@@ -108,6 +109,70 @@ public class UrlFetchService {
         }
 
         throw new IllegalArgumentException("Exceeded maximum redirect depth of " + MAX_REDIRECTS);
+    }
+
+    /**
+     * Extracts clean human-readable text from raw HTML content.
+     * Strips scripts, styles, comments, and tags while preserving titles, meta descriptions, and paragraphs.
+     */
+    public String extractCleanText(String rawContent) {
+        if (rawContent == null || rawContent.isBlank()) {
+            return "";
+        }
+
+        if (!rawContent.contains("<") || !rawContent.contains(">")) {
+            return rawContent.trim();
+        }
+
+        // Extract title if present
+        String pageTitle = "";
+        java.util.regex.Matcher titleMatcher = java.util.regex.Pattern.compile("(?is)<title[^>]*>(.*?)</title>").matcher(rawContent);
+        if (titleMatcher.find()) {
+            pageTitle = titleMatcher.group(1).trim();
+        }
+
+        // Extract meta description if present
+        String metaDesc = "";
+        java.util.regex.Matcher descMatcher = java.util.regex.Pattern.compile("(?is)<meta[^>]*name=[\"']description[\"'][^>]*content=[\"']([^\"']+)[\"']").matcher(rawContent);
+        if (descMatcher.find()) {
+            metaDesc = descMatcher.group(1).trim();
+        } else {
+            java.util.regex.Matcher descMatcherAlt = java.util.regex.Pattern.compile("(?is)<meta[^>]*content=[\"']([^\"']+)[\"'][^>]*name=[\"']description[\"']").matcher(rawContent);
+            if (descMatcherAlt.find()) {
+                metaDesc = descMatcherAlt.group(1).trim();
+            }
+        }
+
+        String cleaned = rawContent;
+        cleaned = cleaned.replaceAll("(?is)<script\\b.*?(?:</script>|$)", " ");
+        cleaned = cleaned.replaceAll("(?is)<style\\b.*?(?:</style>|$)", " ");
+        cleaned = cleaned.replaceAll("(?is)<noscript\\b.*?(?:</noscript>|$)", " ");
+        cleaned = cleaned.replaceAll("(?is)<!--.*?-->", " ");
+        cleaned = cleaned.replaceAll("(?i)<(?:br|p|div|h[1-6]|li|tr|blockquote)[^>]*>", "\n");
+        cleaned = cleaned.replaceAll("<[^>]+>", " ");
+        cleaned = cleaned.replace("&nbsp;", " ")
+                         .replace("&amp;", "&")
+                         .replace("&lt;", "<")
+                         .replace("&gt;", ">")
+                         .replace("&quot;", "\"")
+                         .replace("&#39;", "'")
+                         .replace("&copy;", "©");
+        cleaned = cleaned.replaceAll("[ \t]+", " ");
+        cleaned = cleaned.replaceAll("\n\\s*\n+", "\n\n").trim();
+
+        StringBuilder sb = new StringBuilder();
+        if (!pageTitle.isEmpty()) {
+            sb.append("Page Title: ").append(pageTitle).append("\n\n");
+        }
+        if (!metaDesc.isEmpty()) {
+            sb.append("Meta Description: ").append(metaDesc).append("\n\n");
+        }
+        if (!cleaned.isEmpty()) {
+            sb.append(cleaned);
+        }
+
+        String result = sb.toString().trim();
+        return result.isEmpty() ? "No readable marketing text found on webpage." : result;
     }
 
     /**

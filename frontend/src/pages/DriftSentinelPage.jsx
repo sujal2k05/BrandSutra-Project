@@ -18,11 +18,79 @@ import {
   Radio,
   FileCode,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Code2
 } from 'lucide-react';
 import { driftService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/common/Modal';
+
+// Strips raw HTML, script blocks, styles and comments to display human-readable text
+const stripHtmlToCleanText = (str) => {
+  if (!str) return '';
+  try {
+    let extractedMeta = [];
+    const titleMatch = str.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (titleMatch && titleMatch[1]) {
+      extractedMeta.push('Page Title: ' + titleMatch[1].trim());
+    }
+    const descMatch = str.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) 
+                   || str.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+    if (descMatch && descMatch[1]) {
+      extractedMeta.push('Meta Description: ' + descMatch[1].trim());
+    }
+
+    let clean = str;
+    // Remove script tags (closed or unclosed if truncated)
+    clean = clean.replace(/<script\b[\s\S]*?(?:<\/script>|$)/gi, ' ');
+    // Remove style tags (closed or unclosed)
+    clean = clean.replace(/<style\b[\s\S]*?(?:<\/style>|$)/gi, ' ');
+    clean = clean.replace(/<noscript\b[\s\S]*?(?:<\/noscript>|$)/gi, ' ');
+    clean = clean.replace(/<svg\b[\s\S]*?(?:<\/svg>|$)/gi, ' ');
+    clean = clean.replace(/<!--[\s\S]*?-->/g, ' ');
+    // Convert headings, paragraphs, divs and breaks into newlines
+    clean = clean.replace(/<\/?(?:div|p|h[1-6]|li|tr|br|blockquote|section|article|header|footer)[^>]*>/gi, '\n');
+    // Strip remaining tags
+    clean = clean.replace(/<[^>]+>/g, ' ');
+    // Decode common entities
+    clean = clean
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&copy;/gi, '©');
+
+    // Filter out leftover raw JavaScript statements or theme snippets
+    const lines = clean.split('\n')
+      .map(line => line.trim())
+      .filter(line => {
+        if (!line) return false;
+        if (line.startsWith('(function()') || line.includes('localStorage.') || line.includes('classList.add') || line.includes('classList.remove')) {
+          return false;
+        }
+        return true;
+      });
+
+    let result = lines.join('\n\n');
+    if (!result || result.trim().length === 0) {
+      if (extractedMeta.length > 0) {
+        return `${extractedMeta.join('\n\n')}\n\n[Note: Single-Page Application (SPA) shell detected. Client-side DOM is rendered dynamically in the browser. For dynamic React apps, use 'Offline Manual Snapshot' to test the full marketing copy, or monitor pre-rendered/SSR URLs].`;
+      }
+      return 'No readable marketing text found in page response.';
+    }
+
+    if (extractedMeta.length > 0 && !result.includes(extractedMeta[0])) {
+      result = `${extractedMeta.join('\n\n')}\n\n---\n\n${result}`;
+    }
+
+    return result;
+  } catch (_) {
+    return str;
+  }
+};
 
 export default function DriftSentinelPage() {
   const { success, error: toastError, info } = useToast();
@@ -32,6 +100,7 @@ export default function DriftSentinelPage() {
   const [actionLoading, setActionLoading] = useState({});
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [diffModalSource, setDiffModalSource] = useState(null);
+  const [diffViewMode, setDiffViewMode] = useState('clean'); // 'clean' | 'raw'
   const [manualSnapshotSource, setManualSnapshotSource] = useState(null);
   const [manualSnapshotText, setManualSnapshotText] = useState('');
 
@@ -500,32 +569,106 @@ export default function DriftSentinelPage() {
       </Modal>
 
       {/* Diff Viewer Modal */}
-      <Modal isOpen={!!diffModalSource} onClose={() => setDiffModalSource(null)} title="Drift Snapshot Comparison" maxWidth="max-w-4xl">
+      <Modal isOpen={!!diffModalSource} onClose={() => setDiffModalSource(null)} title="Drift Snapshot Comparison" maxWidth="max-w-5xl">
         <div className="space-y-4">
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            Asset: <span className="font-bold text-slate-800 dark:text-slate-200">{diffModalSource?.name}</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Asset: <span className="font-bold text-slate-900 dark:text-white text-sm">{diffModalSource?.name}</span>
+                {diffModalSource?.url && (
+                  <span className="ml-2 text-[11px] font-mono text-indigo-600 dark:text-indigo-400">({diffModalSource.url})</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Side-by-side verification between approved legal baseline and live public asset.
+              </p>
+            </div>
+
+            {/* View Mode Toggle: Clean Content vs Raw Source */}
+            <div className="flex items-center gap-1 p-1 bg-slate-200/70 dark:bg-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setDiffViewMode('clean')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  diffViewMode === 'clean'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Clean Readable Text</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiffViewMode('raw')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  diffViewMode === 'raw'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Raw Source / HTML</span>
+              </button>
+            </div>
           </div>
+
+          {diffViewMode === 'clean' && (diffModalSource?.baseline_snapshot?.includes('<') || diffModalSource?.current_snapshot?.includes('<')) && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 text-[11px] font-medium rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+              <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Webpage Source Cleaned: HTML tags, stylesheets, and scripts have been automatically stripped to display clean marketing copy and policy claims.</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-2">Approved Baseline Snapshot</span>
-              <div className="font-mono text-xs text-slate-700 dark:text-slate-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                {diffModalSource?.baseline_snapshot || 'No baseline captured.'}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400">Approved Baseline Snapshot</span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  {diffViewMode === 'clean' 
+                    ? `${stripHtmlToCleanText(diffModalSource?.baseline_snapshot).length} chars`
+                    : `${(diffModalSource?.baseline_snapshot || '').length} raw chars`}
+                </span>
+              </div>
+              <div className={`max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed ${
+                diffViewMode === 'clean'
+                  ? 'font-sans text-xs text-slate-800 dark:text-slate-200 selection:bg-indigo-500/20'
+                  : 'font-mono text-xs text-slate-700 dark:text-slate-300 bg-slate-900/40 p-2.5 rounded-xl'
+              }`}>
+                {diffViewMode === 'clean'
+                  ? (stripHtmlToCleanText(diffModalSource?.baseline_snapshot) || 'No readable text captured.')
+                  : (diffModalSource?.baseline_snapshot || 'No baseline captured.')}
               </div>
             </div>
 
             <div className="p-4 bg-rose-50/40 dark:bg-rose-950/20 rounded-2xl border border-rose-200 dark:border-rose-900/60">
-              <span className="text-[10px] font-extrabold uppercase text-rose-600 dark:text-rose-400 block mb-2">Live / Current Snapshot</span>
-              <div className="font-mono text-xs text-rose-950 dark:text-rose-200 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                {diffModalSource?.current_snapshot || 'No snapshot captured.'}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-rose-600 dark:text-rose-400">Live / Current Snapshot</span>
+                <span className="text-[10px] font-mono text-rose-500">
+                  {diffViewMode === 'clean'
+                    ? `${stripHtmlToCleanText(diffModalSource?.current_snapshot).length} chars`
+                    : `${(diffModalSource?.current_snapshot || '').length} raw chars`}
+                </span>
+              </div>
+              <div className={`max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed ${
+                diffViewMode === 'clean'
+                  ? 'font-sans text-xs text-rose-950 dark:text-rose-200 selection:bg-rose-500/20'
+                  : 'font-mono text-xs text-rose-950 dark:text-rose-200 bg-slate-900/40 p-2.5 rounded-xl'
+              }`}>
+                {diffViewMode === 'clean'
+                  ? (stripHtmlToCleanText(diffModalSource?.current_snapshot) || 'No readable text captured.')
+                  : (diffModalSource?.current_snapshot || 'No snapshot captured.')}
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[11px] text-slate-400">
+              Last checked: {diffModalSource?.last_checked_at ? new Date(diffModalSource.last_checked_at).toLocaleTimeString() : 'Recently'}
+            </span>
             <button
               onClick={() => setDiffModalSource(null)}
-              className="px-4 py-2 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300 transition"
+              className="px-5 py-2 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300 transition"
             >
               Close
             </button>
