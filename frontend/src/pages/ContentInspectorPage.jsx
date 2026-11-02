@@ -24,15 +24,19 @@ import {
   Shield,
   Layers,
   HelpCircle,
-  Eye
+  Eye,
+  Swords,
+  ArrowRight
 } from 'lucide-react';
 import { contentService, approvalService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import RiskGauge from '../components/common/RiskGauge';
 import RiskBadge from '../components/common/RiskBadge';
 
 const ContentInspectorPage = () => {
   const { user } = useAuth();
+  const { success, error: toastError, warning: toastWarning, info: toastInfo } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const querySubmissionId = searchParams.get('id');
@@ -55,7 +59,6 @@ const ContentInspectorPage = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [notification, setNotification] = useState({ text: '', type: '' });
   const [overallStatus, setOverallStatus] = useState('DRAFT');
 
   // Visual Brand Checker state
@@ -88,7 +91,6 @@ const ContentInspectorPage = () => {
       setActiveVersionNumber(sub.currentVersionNumber || 1);
       setOverallStatus(sub.overallStatus || 'DRAFT');
 
-      // Only attempt to load findings if submission has been analyzed
       if (sub.overallStatus && sub.overallStatus !== 'DRAFT') {
         try {
           const findingsRes = await contentService.getFindings(id);
@@ -104,7 +106,7 @@ const ContentInspectorPage = () => {
       }
     } catch (err) {
       console.error(err);
-      setNotification({ text: 'Failed to load submission.', type: 'error' });
+      toastError('Failed to load submission.');
     }
   };
 
@@ -115,16 +117,20 @@ const ContentInspectorPage = () => {
       contentText: 'Get 40% OFF on all NovaHome products! Enjoy a 5-year warranty on everything. Our products are 100% perfect!'
     });
     setAnalysisResult(null);
+    toastInfo('Loaded deliberate policy-violating copy preset.');
   };
 
   const handlePresetCompliant = () => {
     setFormData({
       ...formData,
       title: 'Compliant Autumn Promotion',
-      contentText: 'Get up to 25% off on selected NovaHome appliances. Enjoy standard 2-year warranty across all models, and 5-year compressor warranty on Model X. Seasonal offers expire on 30 November 2026.'
+      contentText: 'Get up to 15% off on selected NovaHome appliances. Enjoy standard 2-year warranty across all models, and 5-year compressor warranty on Model X. Seasonal offers expire on 30 November 2026.'
     });
     setAnalysisResult(null);
+    toastSuccess('Loaded Brand DNA compliant copy preset.');
   };
+
+  const toastSuccess = (msg) => success(msg);
 
   const handleSaveDraft = async () => {
     try {
@@ -133,25 +139,23 @@ const ContentInspectorPage = () => {
         setSubmissionId(res.data.id);
         setActiveVersionNumber(res.data.currentVersionNumber);
         setLoadedContentText(formData.contentText);
-        setNotification({ text: 'Draft saved as Version 1!', type: 'success' });
+        toastSuccess('Draft saved as Version 1!');
       } else {
         const res = await contentService.createRevision(submissionId, { contentText: formData.contentText });
         setActiveVersionNumber(res.data.versionNumber);
         setOverallStatus('DRAFT');
         setLoadedContentText(formData.contentText);
-        setNotification({ text: `New revision created as Version ${res.data.versionNumber}!`, type: 'success' });
+        toastSuccess(`New revision created as Version ${res.data.versionNumber}!`);
       }
-      setTimeout(() => setNotification({ text: '', type: '' }), 4000);
     } catch (err) {
       console.error(err);
-      setNotification({ text: 'Failed to save draft revision.', type: 'error' });
+      toastError('Failed to save draft revision.');
     }
   };
 
   const handleAnalyze = async () => {
     if (isAnalyzing) return;
     setIsAnalyzing(true);
-    setNotification({ text: '', type: '' });
 
     try {
       let currentSubId = submissionId;
@@ -162,7 +166,6 @@ const ContentInspectorPage = () => {
         setActiveVersionNumber(createRes.data.currentVersionNumber || 1);
         setLoadedContentText(formData.contentText);
       } else if (overallStatus === 'ANALYZED' && formData.contentText.trim() !== loadedContentText.trim()) {
-        // If content was modified after previous analysis, save as new revision
         const revRes = await contentService.createRevision(currentSubId, { contentText: formData.contentText });
         setActiveVersionNumber(revRes.data.versionNumber);
         setOverallStatus('DRAFT');
@@ -172,32 +175,16 @@ const ContentInspectorPage = () => {
       const res = await contentService.analyzeContent(currentSubId);
       setAnalysisResult(res.data);
       setOverallStatus('ANALYZED');
-      setNotification({
-        text: `Analysis complete! Brand Risk Score: ${res.data.riskScore}/100 (${res.data.riskLevel})`,
-        type: res.data.riskScore > 40 ? 'warning' : 'success'
-      });
+      
+      if (res.data.riskScore > 40) {
+        toastWarning(`Analysis complete! Risk Score: ${res.data.riskScore}/100 (${res.data.riskLevel})`);
+      } else {
+        toastSuccess(`Analysis complete! Risk Score: ${res.data.riskScore}/100 (${res.data.riskLevel})`);
+      }
     } catch (err) {
       console.error('Analysis error:', err);
-      const status = err.response?.status;
       const backendMessage = err.response?.data?.message;
-
-      if (status === 502 || status === 503) {
-        setNotification({
-          text: 'AI microservice is waking up or temporarily busy. Deterministic safety rules fallback was used, or retry in a few moments.',
-          type: 'warning'
-        });
-      } else if (status === 401 || status === 403) {
-        setNotification({ text: 'Authentication session expired. Please sign in again.', type: 'error' });
-      } else if (status === 500) {
-        setNotification({
-          text: `Server error during analysis: ${backendMessage || 'Database or service conflict'}.`,
-          type: 'error'
-        });
-      } else if (backendMessage) {
-        setNotification({ text: `Analysis error: ${backendMessage}`, type: 'error' });
-      } else {
-        setNotification({ text: 'Analysis failed. Please verify service connection.', type: 'error' });
-      }
+      toastError(backendMessage || 'Analysis failed. Deterministic safety fallback applied.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -209,10 +196,7 @@ const ContentInspectorPage = () => {
       ...formData,
       contentText: suggestedText
     });
-    setNotification({
-      text: 'Accepted AI suggested correction! Click "Save Revision Draft" or "Run AI Verification" to create Version 2.',
-      type: 'info'
-    });
+    toastInfo('Accepted AI suggested correction! Click "Analyze Content with AI" to verify.');
   };
 
   const handleDismissFinding = async (findingId) => {
@@ -222,7 +206,7 @@ const ContentInspectorPage = () => {
         ...analysisResult,
         findings: analysisResult.findings.filter(f => f.id !== findingId)
       });
-      setNotification({ text: 'Finding dismissed.', type: 'info' });
+      toastInfo('Finding dismissed.');
     } catch (err) {
       console.error(err);
     }
@@ -230,17 +214,17 @@ const ContentInspectorPage = () => {
 
   const handleSubmitForReview = async () => {
     if (!submissionId) {
-      setNotification({ text: 'Please save and analyze content before submitting for review.', type: 'warning' });
+      toastWarning('Please save and analyze content before submitting for review.');
       return;
     }
     setIsSubmitting(true);
     try {
       await approvalService.submitForReview(submissionId);
       setOverallStatus('PENDING_REVIEW');
-      setNotification({ text: `Version ${activeVersionNumber} submitted to Human Review queue!`, type: 'success' });
+      toastSuccess(`Version ${activeVersionNumber} submitted to Human Review queue!`);
     } catch (err) {
       console.error(err);
-      setNotification({ text: 'Submission failed. Ensure content is analyzed first.', type: 'error' });
+      toastError('Submission failed. Ensure content is analyzed first.');
     } finally {
       setIsSubmitting(false);
     }
@@ -259,7 +243,6 @@ const ContentInspectorPage = () => {
   const handleAnalyzeVisual = async () => {
     if (!visualFile) return;
     setIsAnalyzingVisual(true);
-    setNotification({ text: '', type: '' });
 
     const data = new FormData();
     data.append('file', visualFile);
@@ -270,66 +253,66 @@ const ContentInspectorPage = () => {
     try {
       const res = await contentService.analyzeVisual(data);
       setVisualResult(res.data);
-      setNotification({ text: 'Visual Brand Analysis complete!', type: 'success' });
+      toastSuccess('Visual Brand Analysis complete!');
     } catch (err) {
       console.error(err);
-      setNotification({ text: 'Visual analysis failed. Please verify microservice.', type: 'error' });
+      toastError('Visual analysis failed. Please verify service connection.');
     } finally {
       setIsAnalyzingVisual(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      
-      {/* AREA 4: ENTERPRISE DATA PROTECTION & AI DISCLOSURE BANNER */}
-      <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Enterprise Data Protection Banner */}
+      <div className="p-4 rounded-3xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/60 text-slate-800 dark:text-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center border border-indigo-200/90 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center border border-indigo-200/90 dark:border-indigo-800 flex-shrink-0">
             <Shield className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900 tracking-wide uppercase">
-                Enterprise AI Governance & Privacy Disclosure
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white tracking-wide uppercase">
+                Enterprise AI Governance & Privacy Boundary
               </span>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200/80">
+              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-800">
                 Zero Data Retention
               </span>
             </div>
-            <p className="text-[11px] text-slate-600">
-              Evaluated via sandboxed Google Gemini 2.5 Flash. Submitted content is isolated and never retained for public model training.
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+              Evaluated via sandboxed Gemini 2.5 Flash. Content is verified against Brand DNA facts and never retained for public training.
             </p>
           </div>
         </div>
-        <div className="text-[11px] text-indigo-700 font-semibold flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-indigo-200/80 shadow-xs">
-          <Info className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Final publication authority rests strictly with human reviewers</span>
+        <div className="text-[11px] text-indigo-700 dark:text-indigo-400 font-bold flex items-center gap-1.5 bg-white dark:bg-[#111827] px-3 py-1.5 rounded-xl border border-indigo-200/80 dark:border-indigo-800 shadow-2xs">
+          <Info className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+          <span>Final publication authority rests strictly with Human Reviewers</span>
         </div>
       </div>
 
       {/* Header & Tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <ShieldAlert className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <span>AI Content Inspector & Verifier</span>
-            <span className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full border border-indigo-200">
-              Active Version: v{activeVersionNumber}
+            <span className="text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200/80 dark:border-indigo-800">
+              v{activeVersionNumber}
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Hybrid deterministic safety checks + deep semantic evidence grounding against approved Brand DNA.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Hybrid deterministic rules engine + deep semantic evidence grounding against Brand DNA.
           </p>
         </div>
 
         {/* Verification Mode Tabs */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start md:self-auto">
+        <div className="flex items-center bg-slate-200/80 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-bold self-start md:self-auto">
           <button
             onClick={() => setActiveTab('text')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'text'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-white dark:bg-[#111827] text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -337,64 +320,46 @@ const ContentInspectorPage = () => {
           </button>
           <button
             onClick={() => setActiveTab('visual')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'visual'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'bg-white dark:bg-[#111827] text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>Visual Brand Checker (Images)</span>
-            <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-extrabold uppercase">
-              New
+            <span>Visual Brand Checker</span>
+            <span className="text-[9px] bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded font-extrabold uppercase">
+              Pillow
             </span>
           </button>
         </div>
       </div>
-
-      {/* Notification Toast */}
-      {notification.text && (
-        <div className={`p-4 rounded-xl border text-xs font-medium flex items-center justify-between shadow-sm animate-fade-in ${
-          notification.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-          notification.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-          notification.type === 'info' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' :
-          'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 flex-shrink-0" />
-            <span>{notification.text}</span>
-          </div>
-          <button onClick={() => setNotification({ text: '', type: '' })} className="hover:opacity-75">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* TAB 1: TEXT COPY INSPECTOR */}
       {activeTab === 'text' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* LEFT COLUMN: Input Form (7 cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+          <div className="lg:col-span-7 bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
             
             {/* Presets Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200/60">
-              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+              <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span>Test Presets:</span>
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handlePresetViolating}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900 transition-colors"
                 >
                   Load High-Risk Promo
                 </button>
                 <button
                   type="button"
                   onClick={handlePresetCompliant}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors"
                 >
                   Load Compliant Promo
                 </button>
@@ -404,7 +369,7 @@ const ContentInspectorPage = () => {
             {/* Campaign Metadata */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Content Title
                 </label>
                 <input
@@ -413,12 +378,12 @@ const ContentInspectorPage = () => {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g. Festive Discount Post"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Campaign Name
                 </label>
                 <input
@@ -426,18 +391,18 @@ const ContentInspectorPage = () => {
                   value={formData.campaignName}
                   onChange={(e) => setFormData({ ...formData, campaignName: e.target.value })}
                   placeholder="e.g. Diwali Super Sale 2026"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Marketing Channel
                 </label>
                 <select
                   value={formData.marketingChannel}
                   onChange={(e) => setFormData({ ...formData, marketingChannel: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="INSTAGRAM">Instagram</option>
                   <option value="FACEBOOK">Facebook</option>
@@ -449,14 +414,14 @@ const ContentInspectorPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Target Publication Date
                 </label>
                 <input
                   type="date"
                   value={formData.publicationDate}
                   onChange={(e) => setFormData({ ...formData, publicationDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -464,7 +429,7 @@ const ContentInspectorPage = () => {
             {/* Marketing Copy Textarea */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Marketing Copy & Claims
                 </label>
                 <span className="text-[11px] text-slate-400 font-mono">
@@ -477,18 +442,18 @@ const ContentInspectorPage = () => {
                 value={formData.contentText}
                 onChange={(e) => setFormData({ ...formData, contentText: e.target.value })}
                 placeholder="Paste or write promotional copy, advertisement claims, product specs..."
-                className="w-full p-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed font-sans"
+                className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed font-sans"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all"
               >
-                <Save className="w-4 h-4 text-slate-500" />
+                <Save className="w-4 h-4 text-slate-400" />
                 <span>Save Revision Draft</span>
               </button>
 
@@ -497,7 +462,7 @@ const ContentInspectorPage = () => {
                   type="button"
                   disabled={isAnalyzing || !formData.contentText.trim()}
                   onClick={handleAnalyze}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md shadow-indigo-600/25 transition-all"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition-all"
                 >
                   {isAnalyzing ? (
                     <>
@@ -516,26 +481,52 @@ const ContentInspectorPage = () => {
                   type="button"
                   disabled={isSubmitting || !submissionId || overallStatus === 'PENDING_REVIEW' || overallStatus === 'APPROVED'}
                   onClick={handleSubmitForReview}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-bold shadow-md shadow-emerald-600/25 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Submit for Approval</span>
+                  <span>Submit for Review</span>
                 </button>
               </div>
             </div>
+
+            {/* Direct Handoff Shortcuts if Violations Exist */}
+            {analysisResult?.findings && analysisResult.findings.filter(f => !f.isDismissed).length > 0 && (
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-indigo-900 dark:text-indigo-200 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Fix violations with AI or test PR fallout:</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate('/self-healing')}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                  >
+                    <span>Self-Healing Studio</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => navigate('/adversarial-simulator')}
+                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                  >
+                    <Swords className="w-3 h-3" />
+                    <span>Red-Team PR</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* RIGHT COLUMN: Explainable Findings & Brand Risk Radar (5 cols) */}
+          {/* RIGHT COLUMN: Explainable Findings & Radar (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
             
             {/* Brand Risk Radar Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-indigo-600" />
+            <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>Brand Risk Radar</span>
                 </h3>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Explainable AI</span>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Explainable AI</span>
               </div>
 
               <div className="flex items-center justify-center py-2">
@@ -547,30 +538,30 @@ const ContentInspectorPage = () => {
               </div>
 
               {/* Severity Counters */}
-              <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-100 text-center">
-                <div className="p-2 rounded-xl bg-red-50/70 border border-red-100">
-                  <span className="text-[10px] uppercase font-bold text-red-600 block">Critical</span>
-                  <span className="text-lg font-extrabold text-red-700">{analysisResult?.criticalCount || 0}</span>
+              <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
+                <div className="p-2 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50">
+                  <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Critical</span>
+                  <span className="text-base font-black text-rose-700 dark:text-rose-300">{analysisResult?.criticalCount || 0}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-orange-50/70 border border-orange-100">
-                  <span className="text-[10px] uppercase font-bold text-orange-600 block">High</span>
-                  <span className="text-lg font-extrabold text-orange-700">{analysisResult?.highCount || 0}</span>
+                <div className="p-2 rounded-xl bg-orange-50/70 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/50">
+                  <span className="text-[10px] uppercase font-bold text-orange-600 dark:text-orange-400 block">High</span>
+                  <span className="text-base font-black text-orange-700 dark:text-orange-300">{analysisResult?.highCount || 0}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-100">
-                  <span className="text-[10px] uppercase font-bold text-amber-600 block">Medium</span>
-                  <span className="text-lg font-extrabold text-amber-700">{analysisResult?.mediumCount || 0}</span>
+                <div className="p-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/50">
+                  <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Medium</span>
+                  <span className="text-base font-black text-amber-700 dark:text-amber-300">{analysisResult?.mediumCount || 0}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-emerald-50/70 border border-emerald-100">
-                  <span className="text-[10px] uppercase font-bold text-emerald-600 block">Low</span>
-                  <span className="text-lg font-extrabold text-emerald-700">{analysisResult?.lowCount || 0}</span>
+                <div className="p-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/50">
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Low</span>
+                  <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{analysisResult?.lowCount || 0}</span>
                 </div>
               </div>
             </div>
 
-            {/* AREA 2: EXPLAINABLE EVIDENCE-BASED FINDINGS LIST */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-slate-900 text-base">
+            {/* Findings List */}
+            <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
                   Explainable Findings ({analysisResult?.findings?.filter(f => !f.isDismissed).length || 0})
                 </h3>
                 {analysisResult && (
@@ -585,87 +576,86 @@ const ContentInspectorPage = () => {
                   analysisResult.findings.filter(f => !f.isDismissed).map((finding, idx) => (
                     <div 
                       key={finding.id || idx}
-                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors space-y-2.5"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2.5"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <RiskBadge severity={finding.severity} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <RiskBadge severity={finding.severity} size="xs" />
                           
-                          {/* EVIDENCE DISTINCTION BADGE */}
                           {finding.evidenceStatus === 'CONTRADICTED' ? (
-                            <span className="text-[10px] bg-red-100 text-red-800 font-extrabold px-2 py-0.5 rounded border border-red-200 flex items-center gap-1">
-                              <ShieldAlert className="w-3 h-3 text-red-600" />
+                            <span className="text-[10px] bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 font-bold px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/60 flex items-center gap-1">
+                              <ShieldAlert className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                               PROVEN CONTRADICTION
                             </span>
                           ) : (
-                            <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3 text-amber-600" />
-                              UNSUPPORTED CLAIM (UNVERIFIED)
+                            <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-900/60 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                              UNSUPPORTED CLAIM
                             </span>
                           )}
 
-                          <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">
+                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase font-bold">
                             {finding.category}
                           </span>
                         </div>
                         <button
                           onClick={() => handleDismissFinding(finding.id)}
                           title="Dismiss Finding"
-                          className="text-slate-400 hover:text-slate-600 p-1 rounded"
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      <h4 className="font-bold text-slate-900 text-xs sm:text-sm">
+                      <h4 className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
                         {finding.issue}
                       </h4>
 
                       {finding.excerpt && (
-                        <div className="text-xs text-slate-600 font-mono bg-white px-2.5 py-1.5 rounded border border-slate-200/60">
+                        <div className="text-xs text-slate-700 dark:text-slate-300 font-mono bg-white dark:bg-[#111827] px-2.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
                           "{finding.excerpt}"
                         </div>
                       )}
 
-                      <p className="text-xs text-slate-600 leading-relaxed">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                         {finding.explanation}
                       </p>
 
-                      {/* Approved Evidence Citation if Contradicted */}
+                      {/* Approved Evidence Citation */}
                       {finding.evidenceText ? (
-                        <div className="p-2.5 rounded-lg bg-indigo-50/80 border border-indigo-200 text-xs text-indigo-950">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-indigo-700 block mb-0.5">
+                        <div className="p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/60 text-xs text-indigo-950 dark:text-indigo-200">
+                          <span className="font-extrabold uppercase tracking-wider text-[10px] text-indigo-700 dark:text-indigo-400 block mb-0.5">
                             Approved Brand DNA Evidence:
                           </span>
                           <p className="italic font-sans">"{finding.evidenceText}"</p>
                           {finding.sourceName && (
-                            <div className="text-[10px] text-indigo-600 mt-1 font-mono">
+                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-mono">
                               Source: {finding.sourceName} • Version {finding.sourceVersion || 'v1.0'}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 text-xs text-amber-950">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-amber-700 block mb-0.5">
+                        <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-950 dark:text-amber-200">
+                          <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-700 dark:text-amber-400 block mb-0.5">
                             Evidence Status Notice:
                           </span>
                           <p className="text-[11px]">
-                            No supporting fact or policy exists in your approved Brand DNA for this claim. This statement is uncorroborated. The Reviewer must verify before approval.
+                            No supporting claim exists in approved Brand DNA. Human Reviewer must verify before approval.
                           </p>
                         </div>
                       )}
 
                       {/* Suggested Correction */}
                       {finding.suggestedCorrection && (
-                        <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between gap-2">
-                          <div className="text-xs text-emerald-800 font-medium">
-                            <span className="font-bold text-[10px] uppercase text-emerald-600 block">Suggested Correction:</span>
+                        <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                          <div className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                            <span className="font-extrabold text-[10px] uppercase text-emerald-600 dark:text-emerald-400 block">Suggested Correction:</span>
                             "{finding.suggestedCorrection}"
                           </div>
                           <button
                             type="button"
                             onClick={() => handleAcceptCorrection(finding.suggestedCorrection)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs flex-shrink-0"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-2xs flex-shrink-0"
                           >
                             <Check className="w-3 h-3" />
                             <span>Accept</span>
@@ -675,11 +665,11 @@ const ContentInspectorPage = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="p-8 text-center text-slate-400 text-xs">
+                  <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs">
                     {analysisResult ? (
                       <div className="space-y-2">
                         <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-                        <p className="font-bold text-slate-700 text-sm">All clear! 0 violations detected.</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">All clear! 0 violations detected.</p>
                         <p className="text-slate-400">Content adheres to all approved facts and policies.</p>
                       </div>
                     ) : (
@@ -696,19 +686,19 @@ const ContentInspectorPage = () => {
         </div>
       )}
 
-      {/* AREA 1: TAB 2 - VISUAL BRAND CHECKER (IMAGES) */}
+      {/* TAB 2: VISUAL BRAND CHECKER (IMAGES) */}
       {activeTab === 'visual' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* Visual Asset Upload & Preview (6 cols) */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <UploadCloud className="w-4 h-4 text-indigo-600" />
+          <div className="lg:col-span-6 bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              <UploadCloud className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span>Upload Creative Asset (Banner / Social Post)</span>
             </h3>
 
             {/* Dropzone */}
-            <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-indigo-400 transition-colors bg-slate-50/50">
+            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-6 text-center hover:border-indigo-400 transition-colors bg-slate-50/50 dark:bg-slate-900/40">
               <input
                 type="file"
                 id="visual-file-input"
@@ -718,7 +708,7 @@ const ContentInspectorPage = () => {
               />
               <label htmlFor="visual-file-input" className="cursor-pointer block">
                 <ImageIcon className="w-10 h-10 text-indigo-400 mx-auto mb-2" />
-                <span className="text-sm font-bold text-indigo-600 block">Click to upload marketing image</span>
+                <span className="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 block">Click to upload marketing image</span>
                 <span className="text-xs text-slate-400 block mt-1">PNG, JPG, WebP up to 20MB</span>
               </label>
             </div>
@@ -726,10 +716,10 @@ const ContentInspectorPage = () => {
             {/* Image Preview & Details */}
             {visualPreview && (
               <div className="space-y-3 pt-2">
-                <div className="p-3 bg-slate-100 rounded-xl flex items-center justify-center max-h-72 overflow-hidden border border-slate-200">
-                  <img src={visualPreview} alt="Asset Preview" className="max-h-64 object-contain rounded-lg" />
+                <div className="p-3 bg-slate-100 dark:bg-slate-900 rounded-2xl flex items-center justify-center max-h-72 overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <img src={visualPreview} alt="Asset Preview" className="max-h-64 object-contain rounded-xl" />
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
                   <span>File: {visualFile?.name}</span>
                   <span>Size: {(visualFile?.size / 1024).toFixed(1)} KB</span>
                 </div>
@@ -739,13 +729,13 @@ const ContentInspectorPage = () => {
             {/* Channel Selection */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Target Channel Standard
                 </label>
                 <select
                   value={formData.marketingChannel}
                   onChange={(e) => setFormData({ ...formData, marketingChannel: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="INSTAGRAM">Instagram (1:1 / 4:5)</option>
                   <option value="FACEBOOK">Facebook (1.91:1 / 1:1)</option>
@@ -756,16 +746,16 @@ const ContentInspectorPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Brand Color Guidelines
                 </label>
                 <div className="flex items-center gap-2 pt-1.5">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <span className="w-4 h-4 rounded-full bg-[#6366F1] border border-slate-300 inline-block" />
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="w-4 h-4 rounded-full bg-[#6366F1] border border-slate-300 dark:border-slate-700 inline-block" />
                     <span className="font-mono">#6366F1</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <span className="w-4 h-4 rounded-full bg-[#8B5CF6] border border-slate-300 inline-block" />
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="w-4 h-4 rounded-full bg-[#8B5CF6] border border-slate-300 dark:border-slate-700 inline-block" />
                     <span className="font-mono">#8B5CF6</span>
                   </div>
                 </div>
@@ -794,37 +784,35 @@ const ContentInspectorPage = () => {
           </div>
 
           {/* Visual Analysis Results (6 cols) */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <div className="lg:col-span-6 bg-white dark:bg-[#111827] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-xs space-y-4">
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Visual Compliance Report</span>
             </h3>
 
             {visualResult ? (
               <div className="space-y-4">
-                
-                {/* Visual Metadata Badges */}
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs">
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-xs">
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-bold">Dimensions:</span>
-                    <span className="font-mono font-bold text-slate-800">{visualResult.metadata?.dimensions}</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{visualResult.metadata?.dimensions}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] uppercase font-bold">Aspect Ratio:</span>
-                    <span className="font-mono font-bold text-slate-800">{visualResult.metadata?.aspectRatio}</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{visualResult.metadata?.aspectRatio}</span>
                   </div>
                 </div>
 
-                {/* Extracted Dominant Color Swatches */}
+                {/* Dominant Color Swatches */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                     Extracted Palette Swatches:
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
                     {visualResult.metadata?.dominantColors?.map((col, i) => (
-                      <div key={i} className="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 bg-white shadow-xs">
-                        <span className="w-5 h-5 rounded-md border border-slate-300" style={{ backgroundColor: col.hex }} />
-                        <span className="text-[11px] font-mono text-slate-700 font-bold">{col.hex}</span>
+                      <div key={i} className="flex items-center gap-1.5 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-2xs">
+                        <span className="w-5 h-5 rounded-lg border border-slate-300 dark:border-slate-700" style={{ backgroundColor: col.hex }} />
+                        <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300 font-bold">{col.hex}</span>
                         <span className="text-[10px] text-slate-400 font-mono">({col.percent}%)</span>
                       </div>
                     ))}
@@ -833,24 +821,24 @@ const ContentInspectorPage = () => {
 
                 {/* Visual Findings List */}
                 <div className="space-y-3 pt-2">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <h4 className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Detected Visual Issues ({visualResult.findings.length})
                   </h4>
                   {visualResult.findings.length > 0 ? (
                     visualResult.findings.map((vf, idx) => (
-                      <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                      <div key={idx} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <RiskBadge severity={vf.severity} />
-                          <span className="text-xs font-bold text-slate-900">{vf.issue}</span>
+                          <RiskBadge severity={vf.severity} size="xs" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">{vf.issue}</span>
                         </div>
-                        <p className="text-xs text-slate-600">{vf.explanation}</p>
-                        <div className="text-[11px] text-indigo-700 font-medium bg-indigo-50 p-2 rounded-lg border border-indigo-100">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">{vf.explanation}</p>
+                        <div className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-950/60 p-2 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
                           <strong>Fix:</strong> {vf.suggested_correction || vf.suggestedCorrection}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-6 text-center text-emerald-600 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-bold">
+                    <div className="p-6 text-center text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
                       <CheckCircle2 className="w-6 h-6 mx-auto mb-1 text-emerald-500" />
                       Visual asset is 100% compliant with approved brand palette and aspect ratio!
                     </div>
@@ -858,9 +846,9 @@ const ContentInspectorPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-12 text-center text-slate-400 text-xs">
+              <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs">
                 <Palette className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
-                <p className="font-bold text-slate-700 text-sm">No visual asset inspected yet</p>
+                <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No visual asset inspected yet</p>
                 <p className="mt-1">Upload an image on the left and click "Run Visual Brand Check".</p>
               </div>
             )}

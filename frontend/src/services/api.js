@@ -96,4 +96,29 @@ export const dashboardService = {
   getAnalytics: (orgId) => api.get('/dashboard/analytics', { params: { orgId } }),
 };
 
+export const selfHealingService = {
+  healContent: (data) => api.post('/self-healing/heal', data),
+  getSession: (id) => api.get(`/self-healing/${id}`),
+  getSessionsBySubmission: (subId) => api.get(`/self-healing/submission/${subId}`),
+  acceptSession: (id) => api.post(`/self-healing/${id}/accept`),
+  rejectSession: (id) => api.post(`/self-healing/${id}/reject`),
+};
+
+export const adversarialService = {
+  simulate: (data) => api.post('/adversarial/simulate', data),
+  getSimulation: (id) => api.get(`/adversarial/${id}`),
+  getSimulationsBySubmission: (subId) => api.get(`/adversarial/submission/${subId}`),
+  exportPdf: (id) => api.get(`/adversarial/${id}/export-pdf`, { responseType: 'blob' }),
+};
+
+export const driftService = {
+  registerSource: (data) => api.post('/drift/sources', data),
+  getSources: () => api.get('/drift/sources'),
+  checkSourceNow: (id) => api.post(`/drift/sources/${id}/check-now`),
+  updateManualSnapshot: (id, content) => api.put(`/drift/sources/${id}/manual-snapshot`, { content }),
+  toggleSource: (id, active) => api.put(`/drift/sources/${id}/toggle`, { active }),
+  getAlerts: () => api.get('/drift/alerts'),
+  reviewAlert: (id) => api.post(`/drift/alerts/${id}/review`),
+};
+
 export default api;

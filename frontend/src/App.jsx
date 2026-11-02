@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Layout
 import AppLayout from './components/layout/AppLayout';
@@ -18,6 +20,9 @@ import ApprovalsPage from './pages/ApprovalsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import TeamManagementPage from './pages/TeamManagementPage';
 import SettingsPage from './pages/SettingsPage';
+import SelfHealingPage from './pages/SelfHealingPage';
+import AdversarialSimulatorPage from './pages/AdversarialSimulatorPage';
+import DriftSentinelPage from './pages/DriftSentinelPage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -25,10 +30,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-canvasBg">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B1120]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-textSecondary font-medium">Loading BrandSutra...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Loading BrandSutra...</p>
         </div>
       </div>
     );
@@ -51,7 +56,7 @@ const PublicRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-canvasBg">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B1120]">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -66,52 +71,59 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public Landing & Auth Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <RegisterPage />
-              </PublicRoute>
-            }
-          />
+    <ThemeProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public Landing & Auth Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <RegisterPage />
+                  </PublicRoute>
+                }
+              />
 
-          {/* Authenticated Dashboard Routes */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/brand-dna" element={<BrandDnaPage />} />
-            <Route path="/guidelines" element={<BrandGuidelinesPage />} />
-            <Route path="/inspector" element={<ContentInspectorPage />} />
-            <Route path="/submissions" element={<MySubmissionsPage />} />
-            <Route path="/approvals" element={<ApprovalsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/team" element={<TeamManagementPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
+              {/* Authenticated Dashboard Routes */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/brand-dna" element={<BrandDnaPage />} />
+                <Route path="/guidelines" element={<BrandGuidelinesPage />} />
+                <Route path="/inspector" element={<ContentInspectorPage />} />
+                <Route path="/self-healing" element={<SelfHealingPage />} />
+                <Route path="/adversarial-simulator" element={<AdversarialSimulatorPage />} />
+                <Route path="/drift-sentinel" element={<DriftSentinelPage />} />
+                <Route path="/submissions" element={<MySubmissionsPage />} />
+                <Route path="/approvals" element={<ApprovalsPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/team" element={<TeamManagementPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

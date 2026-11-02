@@ -12,9 +12,12 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  Shield
+  Shield,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { authService } from '../services/api';
 
 const RegisterPage = () => {
@@ -35,15 +38,15 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { register } = useAuth();
+  const { isDark, setTheme } = useTheme();
   const navigate = useNavigate();
 
-  // Load existing organizations for selection
   useEffect(() => {
     const fetchOrgs = async () => {
       try {
         const res = await authService.getOrganizations();
-        setOrganizations(res.data);
-        if (res.data.length > 0) {
+        setOrganizations(res.data || []);
+        if (res.data?.length > 0) {
           setFormData((prev) => ({
             ...prev,
             organizationId: res.data[0].id,
@@ -111,87 +114,94 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
-      {/* Decorative top soft glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-indigo-100/50 to-transparent blur-3xl pointer-events-none rounded-full" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-indigo-500 selection:text-white relative overflow-hidden transition-colors duration-200">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-indigo-500/10 to-transparent blur-3xl pointer-events-none rounded-full" />
+
+      {/* Floating theme toggle */}
+      <div className="absolute top-5 right-5 z-20">
+        <button
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          className="p-2.5 rounded-xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-xs hover:border-slate-300 transition"
+        >
+          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+        </button>
+      </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
         <Link to="/" className="inline-flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <span className="font-extrabold text-2xl text-slate-900 tracking-tight">BrandSutra</span>
+          <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">BrandSutra</span>
         </Link>
-        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
+        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           Join Your Brand Workspace
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
+          <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
             Sign in
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg px-4 sm:px-0 relative z-10">
-        <div className="bg-white py-9 px-6 sm:px-10 shadow-card rounded-2xl border border-slate-200/90">
-          
+        <div className="bg-white dark:bg-[#111827] py-8 px-6 sm:px-10 shadow-xl rounded-3xl border border-slate-200/80 dark:border-slate-800">
           {/* Admin Policy Notice */}
-          <div className="mb-6 p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-indigo-950 text-xs flex items-start gap-3">
-            <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/60 text-indigo-950 dark:text-indigo-200 text-xs flex items-start gap-3">
+            <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
             <span className="leading-relaxed">
-              <strong>Team Governance Policy:</strong> Workspace Admin is managed by organization leadership. Please choose whether to register as a <strong>Content Creator</strong> or <strong>Human Reviewer</strong> below.
+              <strong>Team Role Guidance:</strong> Workspace Admin is managed by organization leadership. Please choose whether to register as a <strong>Content Creator</strong> or <strong>Human Reviewer</strong> below.
             </span>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" />
+            <div className="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Step 1: Role Selection Cards */}
+            {/* Step 1: Role Selection */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                 Select Your Role *
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => handleRoleSelect('CONTENT_CREATOR')}
-                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all ${
                     formData.role === 'CONTENT_CREATOR'
-                      ? 'bg-indigo-50/80 border-indigo-600 text-slate-900 ring-2 ring-indigo-500/20 shadow-xs'
-                      : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                      ? 'bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-600 dark:border-indigo-500 ring-2 ring-indigo-500/20'
+                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <PenTool className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-bold text-slate-900">Content Creator</span>
+                    <PenTool className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Content Creator</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Draft copy, test AI inspection, accept fixes & submit revisions.
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">
+                    Draft copy, run AI inspection, Self-Healing fixes & submit revisions.
                   </p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleRoleSelect('REVIEWER')}
-                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all ${
                     formData.role === 'REVIEWER'
-                      ? 'bg-purple-50/80 border-purple-600 text-slate-900 ring-2 ring-purple-500/20 shadow-xs'
-                      : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                      ? 'bg-purple-50/80 dark:bg-purple-950/60 border-purple-600 dark:border-purple-500 ring-2 ring-purple-500/20'
+                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-bold text-slate-900">Human Reviewer</span>
+                    <CheckCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Human Reviewer</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Inspect evidence, verify compliance, Approve / Reject publications.
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">
+                    Inspect evidence, Red-Team audit, and Approve/Reject publications.
                   </p>
                 </button>
               </div>
@@ -199,7 +209,7 @@ const RegisterPage = () => {
 
             {/* Step 2: Full Name */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Full Name *
               </label>
               <div className="relative">
@@ -213,14 +223,14 @@ const RegisterPage = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="e.g. Sujal Bhoi"
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
               </div>
             </div>
 
             {/* Step 3: Work Email */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Work Email *
               </label>
               <div className="relative">
@@ -234,14 +244,14 @@ const RegisterPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="name@company.com"
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
               </div>
             </div>
 
             {/* Step 4: Organization Selection */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Select Workspace Organization *
               </label>
               <div className="relative">
@@ -251,7 +261,7 @@ const RegisterPage = () => {
                 <select
                   value={showNewOrgInput ? '__NEW__' : formData.organizationId}
                   onChange={handleOrgSelect}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 >
                   {organizations.map((org) => (
                     <option key={org.id} value={org.id}>
@@ -263,11 +273,11 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Optional Custom Organization Input if selected */}
+            {/* Custom Organization Input if selected */}
             {showNewOrgInput && (
               <div className="space-y-3 pt-1">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Organization Name
                   </label>
                   <input
@@ -277,18 +287,18 @@ const RegisterPage = () => {
                     value={formData.organizationName}
                     onChange={handleChange}
                     placeholder="e.g. Nexus Dynamics"
-                    className="block w-full px-3 py-2 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                    className="block w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Industry
                   </label>
                   <select
                     name="industry"
                     value={formData.industry}
                     onChange={handleChange}
-                    className="block w-full px-3 py-2 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+                    className="block w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                   >
                     <option value="Consumer Products">Consumer Products & Appliances</option>
                     <option value="SaaS & Technology">SaaS & Technology</option>
@@ -300,9 +310,9 @@ const RegisterPage = () => {
               </div>
             )}
 
-            {/* Step 5: Password with Visibility Toggle */}
+            {/* Step 5: Password */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Password *
               </label>
               <div className="relative">
@@ -317,12 +327,12 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Min 6 characters"
-                  className="block w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  className="block w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -333,14 +343,14 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white transition-all shadow-md ${
+              className={`w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-md ${
                 formData.role === 'CONTENT_CREATOR'
                   ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
                   : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
               } disabled:opacity-50`}
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <span>

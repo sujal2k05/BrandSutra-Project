@@ -199,3 +199,143 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     CONSTRAINT fk_audit_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
     CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Round 3 Improvements: Feature 1 - Agentic Self-Healing Content Studio
+CREATE TABLE IF NOT EXISTS self_healing_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT NOT NULL,
+    submission_id BIGINT NULL,
+    source_version_id BIGINT NULL,
+    created_by BIGINT NOT NULL,
+    original_text LONGTEXT NOT NULL,
+    healed_text LONGTEXT,
+    iterations_count INT DEFAULT 1,
+    status VARCHAR(50) NOT NULL DEFAULT 'COMPLETED',
+    initial_risk_score INT DEFAULT 0,
+    final_risk_score INT DEFAULT 0,
+    final_risk_level VARCHAR(50) DEFAULT 'LOW',
+    resolved_violations_count INT DEFAULT 0,
+    remaining_violations_count INT DEFAULT 0,
+    summary TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sh_org (organization_id),
+    INDEX idx_sh_sub (submission_id),
+    CONSTRAINT fk_sh_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_sh_sub FOREIGN KEY (submission_id) REFERENCES content_submissions(id) ON DELETE SET NULL,
+    CONSTRAINT fk_sh_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS self_healing_agent_steps (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id BIGINT NOT NULL,
+    iteration_number INT NOT NULL,
+    agent_name VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'SUCCESS',
+    input_snippet TEXT,
+    output_text LONGTEXT,
+    findings_json LONGTEXT,
+    explanation TEXT,
+    execution_time_ms BIGINT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sh_steps_session (session_id),
+    CONSTRAINT fk_sh_step_session FOREIGN KEY (session_id) REFERENCES self_healing_sessions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Round 3 Improvements: Feature 2 - Adversarial PR Simulator
+CREATE TABLE IF NOT EXISTS adversarial_simulations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT NOT NULL,
+    submission_id BIGINT NULL,
+    created_by BIGINT NOT NULL,
+    content_text LONGTEXT NOT NULL,
+    campaign_name VARCHAR(255),
+    overall_risk_score INT DEFAULT 0,
+    consumer_risk_score INT DEFAULT 0,
+    compliance_risk_score INT DEFAULT 0,
+    reputation_risk_score INT DEFAULT 0,
+    risk_level VARCHAR(50) DEFAULT 'LOW',
+    executive_summary TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_adv_org (organization_id),
+    INDEX idx_adv_sub (submission_id),
+    CONSTRAINT fk_adv_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_adv_sub FOREIGN KEY (submission_id) REFERENCES content_submissions(id) ON DELETE SET NULL,
+    CONSTRAINT fk_adv_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS adversarial_agent_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    simulation_id BIGINT NOT NULL,
+    agent_perspective VARCHAR(100) NOT NULL,
+    risk_score INT DEFAULT 0,
+    perspective_summary TEXT,
+    findings_json LONGTEXT,
+    recommendations_json LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_adv_rep_sim (simulation_id),
+    CONSTRAINT fk_adv_rep_sim FOREIGN KEY (simulation_id) REFERENCES adversarial_simulations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Round 3 Improvements: Feature 3 - Live Brand Drift Sentinel
+CREATE TABLE IF NOT EXISTS monitored_sources (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT NOT NULL,
+    created_by BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    source_type VARCHAR(50) NOT NULL DEFAULT 'PUBLIC_URL',
+    url VARCHAR(1024),
+    check_frequency VARCHAR(50) DEFAULT 'HOURLY',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_checked_at TIMESTAMP NULL,
+    last_status VARCHAR(50) DEFAULT 'PENDING',
+    current_hash VARCHAR(64),
+    current_snapshot LONGTEXT,
+    baseline_snapshot LONGTEXT,
+    last_risk_score INT DEFAULT 0,
+    last_drift_type VARCHAR(50) DEFAULT 'NO_CHANGE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_mon_org (organization_id),
+    CONSTRAINT fk_mon_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mon_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS drift_check_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    source_id BIGINT NOT NULL,
+    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    previous_hash VARCHAR(64),
+    new_hash VARCHAR(64),
+    has_drift BOOLEAN DEFAULT FALSE,
+    drift_type VARCHAR(50) DEFAULT 'NO_CHANGE',
+    risk_score INT DEFAULT 0,
+    risk_level VARCHAR(50) DEFAULT 'LOW',
+    findings_count INT DEFAULT 0,
+    details TEXT,
+    snapshot_excerpt TEXT,
+    INDEX idx_drift_source (source_id),
+    CONSTRAINT fk_drift_source FOREIGN KEY (source_id) REFERENCES monitored_sources(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS drift_alerts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT NOT NULL,
+    source_id BIGINT NOT NULL,
+    history_id BIGINT NULL,
+    alert_title VARCHAR(255) NOT NULL,
+    drift_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(50) NOT NULL DEFAULT 'HIGH',
+    risk_score INT DEFAULT 0,
+    explanation TEXT,
+    is_reviewed BOOLEAN DEFAULT FALSE,
+    reviewed_by BIGINT NULL,
+    reviewed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_alert_org (organization_id),
+    INDEX idx_alert_reviewed (is_reviewed),
+    CONSTRAINT fk_alert_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_alert_source FOREIGN KEY (source_id) REFERENCES monitored_sources(id) ON DELETE CASCADE,
+    CONSTRAINT fk_alert_history FOREIGN KEY (history_id) REFERENCES drift_check_history(id) ON DELETE SET NULL,
+    CONSTRAINT fk_alert_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -25,7 +25,7 @@ class GeminiVerificationService:
         try:
             # Try official google-genai SDK first
             from google import genai
-            client = genai.Client(api_key=api_key)
+            client = genai.Client(api_key=api_key, http_options={"timeout": 10})
             response = client.models.generate_content(
                 model=settings.GEMINI_MODEL,
                 contents=prompt,
@@ -49,7 +49,7 @@ class GeminiVerificationService:
                     model_name=model_name,
                     generation_config={"response_mime_type": "application/json", "temperature": 0.1}
                 )
-                res = model.generate_content(prompt)
+                res = model.generate_content(prompt, request_options={"timeout": 3.0})
                 return cls._parse_and_validate_response(res.text, request)
             except Exception as e_legacy:
                 logger.error(f"Gemini API verification failed: {e_legacy}")

@@ -1,18 +1,28 @@
 import time
 from typing import List
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
     Finding,
-    PdfExtractionResponse
+    PdfExtractionResponse,
+    SelfHealingAIRequest,
+    SelfHealingAIResponse,
+    AdversarialAIRequest,
+    AdversarialAIResponse,
+    DriftValidationRequest,
+    DriftValidationResponse
 )
 from services.rule_engine import RuleEngine
 from services.gemini_service import GeminiVerificationService
 from services.pdf_extractor import PdfExtractor
 from services.visual_checker import analyze_visual_asset
+from services.self_healing_service import SelfHealingService
+from services.adversarial_service import AdversarialPRSimulatorService
+from services.report_generator import AdversarialReportPdfGenerator
+from services.drift_validator import DriftValidatorService
 
 app = FastAPI(
     title="BrandSutra AI Content Governance Microservice",
@@ -157,6 +167,59 @@ async def extract_pdf_guideline(file: UploadFile = File(...)):
 
     result = PdfExtractor.extract_text(contents, file.filename)
     return PdfExtractionResponse(**result)
+
+# =============================================================================
+# ROUND 3 IMPROVEMENTS: FEATURE 1 - AGENTIC SELF-HEALING STUDIO
+# =============================================================================
+
+@app.post("/api/self-healing/heal", response_model=SelfHealingAIResponse)
+def execute_self_healing_endpoint(request: SelfHealingAIRequest):
+    """
+    Executes the 4-agent self-healing loop:
+    1. Detection Agent -> 2. Correction Agent -> 3. Brand Voice Agent -> 4. Compliance Revalidation Agent
+    """
+    return SelfHealingService.execute_self_healing(request)
+
+# =============================================================================
+# ROUND 3 IMPROVEMENTS: FEATURE 2 - ADVERSARIAL PR SIMULATOR
+# =============================================================================
+
+@app.post("/api/adversarial/simulate", response_model=AdversarialAIResponse)
+def execute_adversarial_simulation_endpoint(request: AdversarialAIRequest):
+    """
+    Runs multi-stakeholder adversarial simulation (Consumer, Legal/Advertising Compliance, Brand Reputation).
+    """
+    return AdversarialPRSimulatorService.simulate(request)
+
+@app.post("/api/adversarial/export-pdf")
+def export_adversarial_pdf_endpoint(request: AdversarialAIRequest):
+    """
+    Generates an executive audit PDF report using PyMuPDF at zero cost.
+    """
+    sim_data = AdversarialPRSimulatorService.simulate(request)
+    org_name = request.brand_profile.brand_name if request.brand_profile else "NovaHome Appliances"
+    pdf_bytes = AdversarialReportPdfGenerator.generate_pdf(
+        sim_data=sim_data,
+        content_text=request.content_text,
+        campaign_name=request.campaign_name or "Promotional Campaign",
+        org_name=org_name
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=BrandSutra_Adversarial_PR_Report.pdf"}
+    )
+
+# =============================================================================
+# ROUND 3 IMPROVEMENTS: FEATURE 3 - LIVE BRAND DRIFT SENTINEL
+# =============================================================================
+
+@app.post("/api/drift/validate", response_model=DriftValidationResponse)
+def validate_brand_drift_endpoint(request: DriftValidationRequest):
+    """
+    Validates published content drift against baseline and classifies risk type.
+    """
+    return DriftValidatorService.validate_drift(request)
 
 if __name__ == "__main__":
     import uvicorn
