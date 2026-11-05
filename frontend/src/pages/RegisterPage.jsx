@@ -129,9 +129,11 @@ const RegisterPage = () => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
         <Link to="/" className="inline-flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="BrandSutra Logo" 
+            className="w-12 h-12 object-contain drop-shadow-md" 
+          />
           <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">BrandSutra</span>
         </Link>
         <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">

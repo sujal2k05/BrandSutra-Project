@@ -31,9 +31,11 @@ const LandingPage = () => {
       <header className="border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-[#111827]/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="BrandSutra Logo" 
+              className="w-10 h-10 object-contain drop-shadow-xs" 
+            />
             <div>
               <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 BrandSutra
@@ -229,7 +231,7 @@ const LandingPage = () => {
       <footer className="mt-auto py-10 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#111827] text-slate-500 dark:text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <img src="/logo.png" alt="BrandSutra Logo" className="w-5 h-5 object-contain" />
             <span className="font-extrabold text-slate-900 dark:text-white">BrandSutra</span>
             <span>— AI-Powered Brand Governance Platform (₹0 Zero-Cost Architecture)</span>
           </div>

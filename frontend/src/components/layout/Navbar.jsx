@@ -76,6 +76,11 @@ const Navbar = ({ title, setIsMobileOpen }) => {
         >
           <Menu className="w-5 h-5" />
         </button>
+        <img 
+          src="/logo.png" 
+          alt="BrandSutra Logo" 
+          className="md:hidden w-7 h-7 object-contain flex-shrink-0" 
+        />
         <div>
           <h1 className="text-base md:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight truncate max-w-xs sm:max-w-md">
             {title}
