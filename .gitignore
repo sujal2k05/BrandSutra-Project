@@ -96,3 +96,5 @@ client_secret*.json
 
 # Scratch & test generated artifacts
 test_visual.png
+.pytest_cache/
+scratch/

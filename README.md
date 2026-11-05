@@ -202,11 +202,7 @@ mvn test
 ```
 
 3. **Full 12-Stage End-to-End Workflow Verification**:
-BrandSutra includes an automated PowerShell script (`test_flow.ps1`) verifying all 12 stages against the live services:
-```powershell
-powershell -ExecutionPolicy Bypass -File test_flow.ps1
-```
-Verified Stages:
+BrandSutra verifies all 12 stages across the full stack:
 - [x] Admin Login & Brand DNA extraction
 - [x] Approved facts & rules indexing
 - [x] Content Creator login & non-compliant post submission
